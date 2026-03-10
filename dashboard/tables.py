@@ -79,12 +79,11 @@ def match_results(partidos: pd.DataFrame) -> None:
         if row["goles_local"] < row["goles_visitante"]:  return "Visitante"
         return "Empate"
 
-    df["Resultado"] = df.apply(_resultado, axis=1)
     df["Marcador"]  = df["goles_local"].astype(str) + " - " + df["goles_visitante"].astype(str)
 
     final = (
         df.rename(columns={"jornada": "Jornada", "equipo_local": "Local", "equipo_visitante": "Visitante"})
-        [["Jornada", "Local", "Marcador", "Visitante", "Resultado"]]
+        [["Jornada", "Local", "Marcador", "Visitante"]]
         .sort_values("Jornada")
     )
 
@@ -94,7 +93,6 @@ def match_results(partidos: pd.DataFrame) -> None:
         hide_index=True,
         column_config={
             "Jornada":   st.column_config.NumberColumn("Jornada", format="%d"),
-            "Resultado": st.column_config.TextColumn("Resultado"),
         },
     )
 
