@@ -60,6 +60,8 @@ with col_c:
     charts.goals_by_round(eventos)
 with col_d:
     charts.top_scorers(eventos)
+    
+charts.top_scorers_timeline(eventos)
 
 # ─── Fila 3: Goles Recibidos y Rústicos ────────────────────────────────────────
 col_ef1, col_ef2 = st.columns([1, 1], gap="medium")
@@ -75,10 +77,19 @@ with col_g:
 with col_h:
     charts.disciplinary_timeline(eventos)
 
-charts.fouls_scatter(eventos, partidos)
+# ─── Tabla de Posiciones y Resultados ────────────────────────────────────────
+col_pos, col_res = st.columns([3, 2], gap="medium")
+with col_pos:
+    tables.league_standings(partidos)
+with col_res:
+    tables.match_results(partidos)
 
-# ─── Resultados de partidos ───────────────────────────────────────────────────
-tables.match_results(partidos)
+# ─── Gráficos de dispersión (Scatter Plots) ──────────────────────────────────
+col_s1, col_s2 = st.columns([1, 1], gap="medium")
+with col_s1:
+    charts.fouls_scatter(eventos, partidos)
+with col_s2:
+    charts.efficiency_vs_discipline(eventos, partidos)
 
 # ─── Rendimiento ─────────────────────────────────────────────────────────────
 charts.team_performance(partidos)

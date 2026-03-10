@@ -96,3 +96,55 @@ def match_results(partidos: pd.DataFrame) -> None:
             "Resultado": st.column_config.TextColumn("Resultado"),
         },
     )
+
+
+# ─── Tabla de Posiciones ──────────────────────────────────────────────────────
+
+def league_standings(partidos: pd.DataFrame) -> None:
+    st.markdown('<div class="section-title">🏆 Tabla de Posiciones</div>', unsafe_allow_html=True)
+    
+    if partidos.empty:
+        st.info("Sin partidos suficientes para armar la tabla de posiciones.")
+        return
+        
+    stats = {}
+    
+    for _, row in partidos.iterrows():
+        l_team = row["equipo_local"]
+        v_team = row["equipo_visitante"]
+        gl = row["goles_local"]
+        gv = row["goles_visitante"]
+        
+        # Init teams if not exist
+        if l_team not in stats: stats[l_team] = {"PJ":0, "G":0, "E":0, "P":0, "GF":0, "GC":0}
+        if v_team not in stats: stats[v_team] = {"PJ":0, "G":0, "E":0, "P":0, "GF":0, "GC":0}
+            
+        # Update PJ and goals
+        stats[l_team]["PJ"] += 1; stats[v_team]["PJ"] += 1
+        stats[l_team]["GF"] += gl; stats[l_team]["GC"] += gv
+        stats[v_team]["GF"] += gv; stats[v_team]["GC"] += gl
+        
+        # Update W/D/L
+        if gl > gv:
+            stats[l_team]["G"] += 1; stats[v_team]["P"] += 1
+        elif gl < gv:
+            stats[l_team]["P"] += 1; stats[v_team]["G"] += 1
+        else:
+            stats[l_team]["E"] += 1; stats[v_team]["E"] += 1
+            
+    # Convert to DataFrame
+    df = pd.DataFrame.from_dict(stats, orient="index").reset_index().rename(columns={"index": "Equipo"})
+    if df.empty:
+        return
+        
+    df["DIF"] = df["GF"] - df["GC"]
+    df["PTS"] = df["G"] * 3 + df["E"]
+    
+    # Sort by PTS (desc), then DIF (desc), then GF (desc)
+    df = df.sort_values(["PTS", "DIF", "GF"], ascending=[False, False, False]).reset_index(drop=True)
+    df.index = df.index + 1  # For ranking
+    
+    st.dataframe(
+        df,
+        use_container_width=True,
+    )
