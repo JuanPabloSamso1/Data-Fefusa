@@ -53,7 +53,7 @@ def disciplinary(eventos: pd.DataFrame) -> None:
 
     st.dataframe(
         disc_show,
-        use_container_width=True,
+        width="stretch",
         hide_index=True,
         column_config={
             "Puntos disciplinarios": st.column_config.ProgressColumn(
@@ -89,7 +89,7 @@ def match_results(partidos: pd.DataFrame) -> None:
 
     st.dataframe(
         final,
-        use_container_width=True,
+        width="stretch",
         hide_index=True,
         column_config={
             "Jornada":   st.column_config.NumberColumn("Jornada", format="%d"),
@@ -145,7 +145,7 @@ def league_standings(partidos: pd.DataFrame) -> None:
     
     st.dataframe(
         df,
-        use_container_width=True,
+        width="stretch",
     )
 
 
@@ -249,6 +249,6 @@ def elo_ranking(partidos_raw: pd.DataFrame, partidos_filtrados: pd.DataFrame) ->
 
     st.dataframe(
         elo_df,
-        use_container_width=True,
+        width="stretch",
     )
 

@@ -15,10 +15,12 @@ def render_sidebar(eventos_raw: pd.DataFrame) -> dict:
         st.divider()
 
         categorias_opts = ["Todas"] + sorted(eventos_raw["categoria"].dropna().unique().tolist())
-        sel_categoria = st.selectbox("🏅 Categoría", categorias_opts)
+        default_cat_idx = categorias_opts.index("Primera FSP") if "Primera FSP" in categorias_opts else 0
+        sel_categoria = st.selectbox("🏅 Categoría", categorias_opts, index=default_cat_idx)
 
         temporadas_opts = ["Todas"] + sorted(eventos_raw["temporada"].dropna().unique().tolist())
-        sel_temporada = st.selectbox("🏆 Temporada", temporadas_opts)
+        default_temp_idx = temporadas_opts.index("Apertura 2026") if "Apertura 2026" in temporadas_opts else 0
+        sel_temporada = st.selectbox("🏆 Temporada", temporadas_opts, index=default_temp_idx)
 
         jornadas_opts = ["Todas"] + sorted(eventos_raw["jornada"].dropna().unique().tolist())
         sel_jornada = st.selectbox("📅 Jornada", jornadas_opts)

@@ -15,6 +15,8 @@ COLORS = {
     "Azul I":   "#58a6ff",      # Celeste/Azul claro (indirecta)
     "Azul D":   "#1f6feb",      # Azul oscuro (directa)
     "Lesionado":"#8b949e",      # Gris
+    "Penal Gol": "#2ea043",     # Verde chillón
+    "Penal Errado": "#a371f7",  # Morado / Púrpura
 }
 
 _TEMPLATE = "plotly_dark"
@@ -60,7 +62,7 @@ def goals_by_team(eventos: pd.DataFrame) -> None:
     fig.update_traces(marker_line_width=0)
     fig.update_coloraxes(showscale=False)
     fig.update_yaxes(title=" ")
-    st.plotly_chart(_style(fig), use_container_width=True)
+    st.plotly_chart(_style(fig), width="stretch")
 
 
 def events_by_type(eventos: pd.DataFrame) -> None:
@@ -83,7 +85,7 @@ def events_by_type(eventos: pd.DataFrame) -> None:
         showlegend=False, paper_bgcolor=_BG_PAPER, plot_bgcolor=_BG_PLOT,
         font=dict(family="Inter", color="#e6edf3"), margin=dict(t=20, b=20, l=20, r=20),
     )
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
 
 def goals_by_round(eventos: pd.DataFrame) -> None:
@@ -104,7 +106,7 @@ def goals_by_round(eventos: pd.DataFrame) -> None:
         labels={"jornada": "Jornada"}, template=_TEMPLATE, text="Goles",
     )
     fig.update_traces(textposition="outside", textfont_color="#e6edf3", marker_line_width=0)
-    st.plotly_chart(_style(fig), use_container_width=True)
+    st.plotly_chart(_style(fig), width="stretch")
 
 
 def top_scorers(eventos: pd.DataFrame, top_n: int = 10) -> None:
@@ -134,7 +136,7 @@ def top_scorers(eventos: pd.DataFrame, top_n: int = 10) -> None:
     fig.update_coloraxes(showscale=False)
     fig.update_yaxes(title=" ")
     fig.update_layout(yaxis=dict(autorange="reversed"))
-    st.plotly_chart(_style(fig, height=360), use_container_width=True)
+    st.plotly_chart(_style(fig, height=360), width="stretch")
 
 
 def team_performance(partidos: pd.DataFrame) -> None:
@@ -173,24 +175,10 @@ def team_performance(partidos: pd.DataFrame) -> None:
     fig.update_traces(marker_line_width=0)
     fig.update_layout(legend=dict(orientation="h", x=0, y=1.08, font_size=11))
     fig.update_xaxes(title=" ")
-    st.plotly_chart(_style(fig), use_container_width=True)
+    st.plotly_chart(_style(fig), width="stretch")
 
 
-def events_by_minute(eventos: pd.DataFrame) -> None:
-    st.markdown('<div class="section-title">⏱️ Distribución de Eventos por Minuto</div>', unsafe_allow_html=True)
-    tipos = ["Gol", "Falta", "Amarilla", "Roja", "Azul I", "Azul D"]
-    data = eventos[eventos["tipo_evento"].isin(tipos)]
-    if data.empty:
-        st.info("Sin datos.")
-        return
-    fig = px.histogram(
-        data, x="minuto", color="tipo_evento", nbins=40,
-        barmode="stack", color_discrete_map=COLORS,
-        labels={"minuto":"Minuto","tipo_evento":"Tipo"}, template=_TEMPLATE,
-    )
-    fig.update_traces(marker_line_width=0)
-    fig.update_layout(legend=dict(orientation="h", x=0, y=1.08, font_size=11))
-    st.plotly_chart(_style(fig), use_container_width=True)
+
 
 
 def goals_by_period(eventos: pd.DataFrame) -> None:
@@ -210,22 +198,24 @@ def goals_by_period(eventos: pd.DataFrame) -> None:
     )
     fig.update_traces(textposition="inside", textinfo="percent+label+value", textfont_size=12)
     fig.update_layout(showlegend=False, paper_bgcolor=_BG_PAPER, plot_bgcolor=_BG_PLOT)
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
 
-def match_timeline(eventos: pd.DataFrame) -> None:
+def match_timeline(eventos: pd.DataFrame, tipos_permitidos: list = None) -> None:
     st.markdown('<div class="section-title">⏳ Evolución del Marcador y Eventos (Línea de Tiempo)</div>', unsafe_allow_html=True)
     
     partidos_unicos = eventos["partido_id"].nunique()
     if partidos_unicos != 1:
-        st.info("⏳ Seleccioná un único **partido** (filtrando por Equipos específicos o Jornada) para ver la línea de tiempo detallada.")
+        st.info("⏳ Seleccioná los filtros de arriba para encontrar un partido específico y ver su línea de tiempo detallada.")
         return
         
-    tipos = ["Gol", "Amarilla", "Roja", "Azul I", "Azul D"]
-    data = eventos[eventos["tipo_evento"].isin(tipos)].copy()
+    if not tipos_permitidos:
+        tipos_permitidos = ["Gol", "Amarilla", "Roja", "Azul I", "Azul D"]
+        
+    data = eventos[eventos["tipo_evento"].isin(tipos_permitidos)].copy()
     
     if data.empty:
-        st.info("Sin eventos destacados para este partido.")
+        st.info("Sin eventos destacados para este partido bajo los filtros seleccionados.")
         return
         
     data["minuto_str"] = data["minuto"].astype(str) + "'"
@@ -238,9 +228,16 @@ def match_timeline(eventos: pd.DataFrame) -> None:
         labels={"minuto": "Minuto del Partido"}
     )
     fig.update_traces(marker=dict(size=14, line=dict(width=1, color="white")), textposition="top center")
-    fig.update_xaxes(range=[0, 40], dtick=5)
-    fig.update_yaxes(title=" ")
-    st.plotly_chart(_style(fig, height=300), use_container_width=True)
+    fig.update_xaxes(range=[-0.5, 40], dtick=5)
+    
+    # Rango en Y más amplio (-0.8 a 1.8) para empujar los dos equipos hacia el centro
+    fig.update_yaxes(title=" ", range=[-0.8, 1.8])
+    
+    # Aplicar estilo primero, luego sobrescribir márgenes para que no se pisen
+    fig = _style(fig, height=300)
+    fig.update_layout(margin=dict(t=60, l=150, r=20, b=20))
+    
+    st.plotly_chart(fig, width="stretch")
 
 
 def fouls_scatter(eventos: pd.DataFrame, partidos: pd.DataFrame) -> None:
@@ -281,7 +278,7 @@ def fouls_scatter(eventos: pd.DataFrame, partidos: pd.DataFrame) -> None:
     # Lína diagonal x=y para ver quién pega más de lo que recibe
     max_val = max(df["Cometidas"].max(), df["Recibidas"].max())
     fig.add_shape(type="line", x0=0, y0=0, x1=max_val, y1=max_val, line=dict(color="#8b949e", dash="dash"))
-    st.plotly_chart(_style(fig), use_container_width=True)
+    st.plotly_chart(_style(fig), width="stretch")
 
 
 def disciplinary_timeline(eventos: pd.DataFrame) -> None:
@@ -296,7 +293,7 @@ def disciplinary_timeline(eventos: pd.DataFrame) -> None:
     labels = ["0-10'", "10-20'", "20-30'", "30-40'"]
     tarjetas["Tramo"] = pd.cut(tarjetas["minuto"], bins=bins, labels=labels, include_lowest=True)
     
-    data = tarjetas.groupby(["Tramo", "tipo_evento"], as_index=False).size().rename(columns={"size": "Cantidad"})
+    data = tarjetas.groupby(["Tramo", "tipo_evento"], as_index=False, observed=False).size().rename(columns={"size": "Cantidad"})
     
     fig = px.bar(
         data, x="Tramo", y="Cantidad", color="tipo_evento",
@@ -304,7 +301,7 @@ def disciplinary_timeline(eventos: pd.DataFrame) -> None:
         labels={"Tramo": "Minuto de Partido", "tipo_evento": "Tarjeta"}
     )
     fig.update_traces(marker_line_width=0)
-    st.plotly_chart(_style(fig), use_container_width=True)
+    st.plotly_chart(_style(fig), width="stretch")
 
 
 def goals_conceded(eventos: pd.DataFrame, partidos: pd.DataFrame) -> None:
@@ -344,7 +341,7 @@ def goals_conceded(eventos: pd.DataFrame, partidos: pd.DataFrame) -> None:
     fig.update_traces(textposition="outside", marker_line_width=0)
     fig.update_coloraxes(showscale=False)
     fig.update_yaxes(title=" ")
-    st.plotly_chart(_style(fig), use_container_width=True)
+    st.plotly_chart(_style(fig), width="stretch")
 
 
 def top_undisciplined(eventos: pd.DataFrame) -> None:
@@ -370,7 +367,7 @@ def top_undisciplined(eventos: pd.DataFrame) -> None:
     fig.update_coloraxes(showscale=False)
     fig.update_yaxes(title=" ")
     fig.update_layout(yaxis=dict(autorange="reversed"))
-    st.plotly_chart(_style(fig, height=360), use_container_width=True)
+    st.plotly_chart(_style(fig, height=360), width="stretch")
 
 
 def efficiency_vs_discipline(eventos: pd.DataFrame, partidos: pd.DataFrame) -> None:
@@ -427,7 +424,7 @@ def efficiency_vs_discipline(eventos: pd.DataFrame, partidos: pd.DataFrame) -> N
         fig.add_vline(x=mean_x, line_width=1, line_dash="dash", line_color="#8b949e", annotation_text="Media Goles")
         fig.add_hline(y=mean_y, line_width=1, line_dash="dash", line_color="#8b949e", annotation_text="Media Disc.")
         
-    st.plotly_chart(_style(fig), use_container_width=True)
+    st.plotly_chart(_style(fig), width="stretch")
 
 
 def top_scorers_timeline(eventos: pd.DataFrame, top_n: int = 5) -> None:
@@ -474,86 +471,92 @@ def top_scorers_timeline(eventos: pd.DataFrame, top_n: int = 5) -> None:
     # We move the legend so it doesn't overlap lines/titles if the plot gets crowded 
     # and we ensure text isn't placed on the chart if text is not strictly needed.
     fig.update_layout(legend=dict(orientation="h", x=0, y=1.15, font_size=11), margin=dict(t=60))
-    st.plotly_chart(_style(fig), use_container_width=True)
+    st.plotly_chart(_style(fig), width="stretch")
 
 
-def goals_punchcard(eventos: pd.DataFrame, partidos: pd.DataFrame) -> None:
-    st.markdown('<div class="section-title">🔥 Densidad de Goles por Minuto (A Favor / En Contra)</div>', unsafe_allow_html=True)
+
+
+def tiros_castigo_bar(eventos: pd.DataFrame, partidos: pd.DataFrame) -> None:
+    st.markdown('<div class="section-title">🛑 Tiros Castigo (Cometidos vs A Favor)</div>', unsafe_allow_html=True)
     if eventos.empty or partidos.empty:
-        st.info("Sin datos suficientes para el mapa de calor.")
+        st.info("Sin datos para analizar Tiros Castigo.")
         return
         
-    goles = eventos[eventos["tipo_evento"] == "Gol"].copy()
-    if goles.empty:
-        st.info("Sin datos de goles.")
+    faltas = eventos[eventos["tipo_evento"] == "Falta"].copy()
+    if faltas.empty:
+        st.info("Sin datos de faltas.")
         return
         
-    # Clasificar A Favor y En Contra
+    f_agg = faltas.groupby(["partido_id", "periodo", "equipo"]).size().reset_index(name="Faltas")
+    f_agg["Tiros_Castigo_Cometidos"] = f_agg["Faltas"].apply(lambda x: max(0, x - 5))
+    tc_df = f_agg[f_agg["Tiros_Castigo_Cometidos"] > 0]
+    
+    if tc_df.empty:
+        st.info("Ningún equipo alcanzó el límite de 5 faltas por tiempo para cometer un Tiro Castigo.")
+        return
+        
     records = []
-    for _, g in goles.iterrows():
-        partido = partidos[partidos["id"] == g["partido_id"]]
+    for _, row in tc_df.iterrows():
+        p_id = row["partido_id"]
+        infractor = row["equipo"]
+        tc = row["Tiros_Castigo_Cometidos"]
+        
+        partido = partidos[partidos["id"] == p_id]
         if not partido.empty:
             p = partido.iloc[0]
-            anotador = g["equipo"]
-            victima = p["equipo_visitante"] if p["equipo_local"] == anotador else p["equipo_local"]
-            minuto = g["minuto"]
+            victima = p["equipo_visitante"] if p["equipo_local"] == infractor else p["equipo_local"]
             
-            records.append({"Equipo": anotador, "Minuto": minuto, "Tipo": "A Favor"})
-            records.append({"Equipo": victima, "Minuto": minuto, "Tipo": "En Contra"})
+            records.append({"equipo": infractor, "Tipo": "Cometidos", "Cantidad": tc})
+            records.append({"equipo": victima, "Tipo": "A Favor", "Cantidad": tc})
             
-    if not records:
+    df_tc = pd.DataFrame(records)
+    if df_tc.empty:
         return
         
-    df = pd.DataFrame(records)
-    
-    # Tramo de 5 minutos
-    bins = [0, 5, 10, 15, 20, 25, 30, 35, 40]
-    labels = ["0-5'", "6-10'", "11-15'", "16-20'", "21-25'", "26-30'", "31-35'", "36-40'"]
-    df["Tramo"] = pd.cut(df["Minuto"], bins=bins, labels=labels, include_lowest=True)
-    
-    # Agrupar
-    agg = df.groupby(["Equipo", "Tramo", "Tipo"], as_index=False).size().rename(columns={"size": "Cantidad"})
-    agg = agg[agg["Cantidad"] > 0] # Eliminar ceros para no dibujar burbujas vacías
-    
-    if agg.empty:
-        st.info("Sin datos luego de agrupar.")
+    df_grouped = df_tc.groupby(["equipo", "Tipo"], as_index=False).sum()
+    df_grouped = df_grouped.sort_values(by="Cantidad", ascending=True)
+
+    fig = px.bar(
+        df_grouped, x="Cantidad", y="equipo", color="Tipo", orientation="h",
+        barmode="group", color_discrete_map={"Cometidos": "#f85149", "A Favor": "#3fb950"},
+        template=_TEMPLATE, text="Cantidad"
+    )
+    fig.update_traces(textposition="outside", marker_line_width=0)
+    fig.update_layout(legend=dict(orientation="h", x=0, y=1.08, font_size=11))
+    fig.update_xaxes(title="Tiros Castigo", dtick=1)
+    fig.update_yaxes(title=" ")
+    st.plotly_chart(_style(fig, height=max(300, len(df_grouped["equipo"].unique()) * 30)), width="stretch")
+
+def tiros_castigo_scatter(eventos: pd.DataFrame) -> None:
+    st.markdown('<div class="section-title">🎯 Faltas vs Tiros Castigos Cometidos</div>', unsafe_allow_html=True)
+    if eventos.empty:
+        st.info("Sin datos de eventos.")
         return
         
-    # Ordenar para dibujar círculos más grandes al fondo. 
-    # Al ordenar de mayor a menor, las burbujas más grandes quedan primeras en el DataFrame
-    # y Plotly las dibuja primero (quedando de fondo). Las burbujas chicas se dibujan últimas (por encima).
-    agg = agg.sort_values("Cantidad", ascending=False)
+    faltas = eventos[eventos["tipo_evento"] == "Falta"].copy()
+    if faltas.empty:
+        st.info("Sin datos de faltas.")
+        return
+
+    f_agg = faltas.groupby(["partido_id", "periodo", "equipo"]).size().reset_index(name="Faltas")
+    f_agg["Tiros_Castigo_Cometidos"] = f_agg["Faltas"].apply(lambda x: max(0, x - 5))
     
-    # Para evitar que Plotly dibuje primero toda la categoría verde y luego tape TODO
-    # con la categoría roja (comportamiento default al usar el parámetro `color=`),
-    # aplicamos los colores y formas a mano en una sola traza unificada:
+    totales = f_agg.groupby("equipo").agg(
+        Total_Faltas=("Faltas", "sum"),
+        Total_TC=("Tiros_Castigo_Cometidos", "sum")
+    ).reset_index()
     
-    color_map = {"A Favor": "#3fb950", "En Contra": "#f85149"}
-    symbol_map = {"A Favor": "circle", "En Contra": "diamond"}
-    
-    agg["Color"] = agg["Tipo"].map(color_map)
-    agg["Forma"] = agg["Tipo"].map(symbol_map)
+    totales["size"] = totales["Total_TC"] * 10 + 20
     
     fig = px.scatter(
-        agg, x="Tramo", y="Equipo", size="Cantidad",
-        color="Color", color_discrete_map="identity", # Forza a usar el color literal de la columna
-        symbol="Forma", symbol_map="identity",
-        hover_data={"Cantidad": True, "Tipo": True, "Color": False, "Forma": False},
-        template=_TEMPLATE, labels={"Tramo": "Minuto"}, opacity=1.0
+        totales, x="Total_Faltas", y="Total_TC", text="equipo", size="size",
+        color="equipo", template=_TEMPLATE, hover_data={"Total_Faltas": True, "Total_TC": True, "size": False},
+        labels={"Total_Faltas": "Cantidad de Faltas Cometidas", "Total_TC": "Tiros Castigos Cometidos"}
     )
     
-    fig.update_traces(marker=dict(line=dict(width=1, color="white")))
-    fig.update_layout(showlegend=False) # Custom legend omitted as it's hard if identity mapped
+    fig.update_traces(textposition="top center", marker=dict(line=dict(width=1, color="white")))
+    fig.update_layout(showlegend=False)
+    fig.update_yaxes(dtick=1)
     
-    # Fake legend annotations as we mapped identity
-    fig.add_scatter(x=[None], y=[None], mode='markers', marker=dict(size=10, color='#3fb950', symbol='circle'), name='A Favor')
-    fig.add_scatter(x=[None], y=[None], mode='markers', marker=dict(size=10, color='#f85149', symbol='diamond'), name='En Contra')
-    fig.update_layout(legend=dict(orientation="h", x=0, y=1.1, font_size=11), showlegend=True)
-    
-    fig.update_xaxes(title=" ", categoryorder="array", categoryarray=labels)
-    fig.update_yaxes(title=" ")
-    
-    st.plotly_chart(_style(fig, height=max(400, len(agg["Equipo"].unique()) * 40)), use_container_width=True)
-
-
+    st.plotly_chart(_style(fig), width="stretch")
 
