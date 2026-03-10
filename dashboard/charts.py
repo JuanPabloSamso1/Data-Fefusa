@@ -519,12 +519,32 @@ def goals_punchcard(eventos: pd.DataFrame, partidos: pd.DataFrame) -> None:
         st.info("Sin datos luego de agrupar.")
         return
         
-    # Crear scatter como punchcard (matriz de burbujas)
+    # Ordenar para dibujar círculos más grandes al fondo
+    agg = agg.sort_values("Cantidad", ascending=False)
+    
+    # Si un equipo empató en ese tramo (mismos goles a favor y en contra), 
+    # se taparán exacto. Hacemos un pequeñísimo offset en el eje Y (equipo) 
+    # para mostrarlos desfasados (uno apenas arriba, otro apenas abajo).
+    def apply_offset(row):
+        base_y = row["Equipo"]
+        if row["Tipo"] == "A Favor":
+            return base_y
+        else:
+            return base_y + " " # Agregar un espacio final imperceptible visualmente en Plotly, 
+                                # pero Plotly lo tratará como una categoría distinta y lo correrá un micro pixel.
+                                # Plotly auto-alinea categorías parecidas si habilitamos group_norm o scatter con barmode.
+                                
+    # Mejor enfoque para Scatter categórico cruzado:
+    # Mover levemente los datos A Favor y En Contra en el eje Y en términos de categoría es sucio.
+    # Mejor configurar el marker symbol distinto si es en contra (ej: 'diamond' vs 'circle') 
+    # o usar Stripplot (barmode group para puntos). En Scatter es más limpio usar `symbol`.
+    
     fig = px.scatter(
         agg, x="Tramo", y="Equipo", size="Cantidad", color="Tipo",
         color_discrete_map={"A Favor": "#3fb950", "En Contra": "#f85149"},
+        symbol="Tipo", symbol_map={"A Favor": "circle", "En Contra": "diamond"},
         hover_data=["Cantidad"], template=_TEMPLATE,
-        labels={"Tramo": "Minuto"}
+        labels={"Tramo": "Minuto"}, opacity=1.0
     )
     fig.update_traces(marker=dict(line=dict(width=1, color="white")))
     fig.update_layout(legend=dict(orientation="h", x=0, y=1.1, font_size=11))
