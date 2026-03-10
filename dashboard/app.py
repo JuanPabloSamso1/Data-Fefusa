@@ -3,6 +3,13 @@ Dashboard de Analytics — FEFUSA
 ================================
 Punto de entrada: streamlit run dashboard/app.py
 """
+import sys
+import os
+from pathlib import Path
+
+# Agregar el directorio raíz al path de Python para que encuentre el módulo 'dashboard'
+sys.path.append(str(Path(__file__).parent.parent))
+
 import streamlit as st
 from dashboard.data_loader import load_data
 from dashboard import filters, kpis, charts, tables
