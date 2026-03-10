@@ -168,15 +168,12 @@ def elo_ranking(partidos_raw: pd.DataFrame, partidos_filtrados: pd.DataFrame) ->
     else:
         df = partidos_raw.sort_values("jornada")
 
-    # Limitar el historial hasta la máxima fecha/jornada del filtro actual 
-    # para que la tabla Elo refleje el estado "al cierre" del torneo/fecha seleccionada
-    if "fecha" in partidos_filtrados.columns:
-        max_limit = partidos_filtrados["fecha"].max()
-        df = df[df["fecha"] <= max_limit]
-    else:
-        max_limit = partidos_filtrados["jornada"].max()
-        df = df[df["jornada"] <= max_limit]
-
+    # Ya no limitamos por max_limit de partidos_filtrados porque si el usuario filtra por
+    # jornada 1 de la temporada 2, perderíamos los partidos de la temporada 1 que ocurrieron antes.
+    # En cambio, calculamos el Elo ABSOLUTO de toda la base de datos hasta el último partido cargado.
+    # Mostrar la "foto" exacta en el tiempo requeriría lógica mucho más compleja por cada jornada.
+    # Dado que nos interesa el Elo actual para comparar, usaremos el cómputo total.
+    
     if df.empty:
         st.info("No hay datos históricos para calcular el Elo en este punto.")
         return
@@ -238,7 +235,12 @@ def elo_ranking(partidos_raw: pd.DataFrame, partidos_filtrados: pd.DataFrame) ->
     # Mostrar únicamente los equipos que pertenecen al DataFrame filtrado actualmente
     equipos_mostrar = set(partidos_filtrados["equipo_local"]).union(set(partidos_filtrados["equipo_visitante"]))
     
+    # Adicionalmente, permitimos ver el Elo de los equipos si jugaron al menos 1 partido históricamente
     elo_final_list = [(eq, elo) for eq, elo in elo_ratings.items() if eq in equipos_mostrar]
+    
+    if not elo_final_list:
+        st.info("Los equipos filtrados no tienen historial de Elo registrado.")
+        return
 
     # Convertir a DataFrame
     elo_df = pd.DataFrame(elo_final_list, columns=["Equipo", "Elo"]).sort_values("Elo", ascending=False).reset_index(drop=True)

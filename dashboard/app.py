@@ -37,10 +37,14 @@ eventos  = filters.apply_event_filters(eventos_raw, sel)
 partidos = filters.apply_match_filters(partidos_raw, sel)
 
 # ─── Header ──────────────────────────────────────────────────────────────────
-st.markdown("""
+# Determinar título dinámico según filtros
+display_cat = sel["categoria"] if sel["categoria"] != "Todas" else "Todas las Categorías"
+display_temp = sel["temporada"] if sel["temporada"] != "Todas" else "Todas las Temporadas"
+
+st.markdown(f"""
 <div class="main-header">
     <h1>⚽ Dashboard de Rendimiento Deportivo</h1>
-    <p>Federación de Fútbol de Mendoza &nbsp;·&nbsp; Primera FSP — Apertura 2026</p>
+    <p>Federación de Fútbol de Mendoza &nbsp;·&nbsp; {display_cat} — {display_temp}</p>
 </div>
 """, unsafe_allow_html=True)
 
@@ -109,8 +113,8 @@ charts.match_timeline(eventos)
 
 # ─── Footer ──────────────────────────────────────────────────────────────────
 st.divider()
-st.markdown("""
+st.markdown(f"""
 <div style="text-align:center; color:#8b949e; font-size:0.8rem; padding:8px 0;">
-    FEFUSA · Dashboard Analytics &nbsp;|&nbsp; Apertura 2026 &nbsp;|&nbsp; Datos al 10/03/2026
+    FEFUSA · Dashboard Analytics &nbsp;|&nbsp; {display_cat} - {display_temp} &nbsp;|&nbsp; Datos al 10/03/2026
 </div>
 """, unsafe_allow_html=True)
