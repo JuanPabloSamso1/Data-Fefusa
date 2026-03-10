@@ -102,6 +102,7 @@ with col_f:
     charts.goals_by_period(eventos)
 
 # ─── Línea de tiempo (si hay 1 solo partido filtrado) ────────────────────────
+charts.goals_punchcard(eventos, partidos)
 charts.match_timeline(eventos)
 
 # ─── Footer ──────────────────────────────────────────────────────────────────

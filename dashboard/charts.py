@@ -477,4 +477,61 @@ def top_scorers_timeline(eventos: pd.DataFrame, top_n: int = 5) -> None:
     st.plotly_chart(_style(fig), use_container_width=True)
 
 
+def goals_punchcard(eventos: pd.DataFrame, partidos: pd.DataFrame) -> None:
+    st.markdown('<div class="section-title">🔥 Densidad de Goles por Minuto (A Favor / En Contra)</div>', unsafe_allow_html=True)
+    if eventos.empty or partidos.empty:
+        st.info("Sin datos suficientes para el mapa de calor.")
+        return
+        
+    goles = eventos[eventos["tipo_evento"] == "Gol"].copy()
+    if goles.empty:
+        st.info("Sin datos de goles.")
+        return
+        
+    # Clasificar A Favor y En Contra
+    records = []
+    for _, g in goles.iterrows():
+        partido = partidos[partidos["id"] == g["partido_id"]]
+        if not partido.empty:
+            p = partido.iloc[0]
+            anotador = g["equipo"]
+            victima = p["equipo_visitante"] if p["equipo_local"] == anotador else p["equipo_local"]
+            minuto = g["minuto"]
+            
+            records.append({"Equipo": anotador, "Minuto": minuto, "Tipo": "A Favor"})
+            records.append({"Equipo": victima, "Minuto": minuto, "Tipo": "En Contra"})
+            
+    if not records:
+        return
+        
+    df = pd.DataFrame(records)
+    
+    # Tramo de 5 minutos
+    bins = [0, 5, 10, 15, 20, 25, 30, 35, 40]
+    labels = ["0-5'", "6-10'", "11-15'", "16-20'", "21-25'", "26-30'", "31-35'", "36-40'"]
+    df["Tramo"] = pd.cut(df["Minuto"], bins=bins, labels=labels, include_lowest=True)
+    
+    # Agrupar
+    agg = df.groupby(["Equipo", "Tramo", "Tipo"], as_index=False).size().rename(columns={"size": "Cantidad"})
+    agg = agg[agg["Cantidad"] > 0] # Eliminar ceros para no dibujar burbujas vacías
+    
+    if agg.empty:
+        st.info("Sin datos luego de agrupar.")
+        return
+        
+    # Crear scatter como punchcard (matriz de burbujas)
+    fig = px.scatter(
+        agg, x="Tramo", y="Equipo", size="Cantidad", color="Tipo",
+        color_discrete_map={"A Favor": "#3fb950", "En Contra": "#f85149"},
+        hover_data=["Cantidad"], template=_TEMPLATE,
+        labels={"Tramo": "Minuto"}
+    )
+    fig.update_traces(marker=dict(line=dict(width=1, color="white")))
+    fig.update_layout(legend=dict(orientation="h", x=0, y=1.1, font_size=11))
+    fig.update_xaxes(title=None, categoryorder="array", categoryarray=labels)
+    fig.update_yaxes(title=None)
+    
+    st.plotly_chart(_style(fig, height=max(400, len(agg["Equipo"].unique()) * 40)), use_container_width=True)
+
+
 
