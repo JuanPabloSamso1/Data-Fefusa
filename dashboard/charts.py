@@ -59,7 +59,7 @@ def goals_by_team(eventos: pd.DataFrame) -> None:
     )
     fig.update_traces(marker_line_width=0)
     fig.update_coloraxes(showscale=False)
-    fig.update_yaxes(title=None)
+    fig.update_yaxes(title="")
     st.plotly_chart(_style(fig), use_container_width=True)
 
 
@@ -132,7 +132,7 @@ def top_scorers(eventos: pd.DataFrame, top_n: int = 10) -> None:
     )
     fig.update_traces(marker_line_width=0, text=data["Goles"].values, textposition="outside")
     fig.update_coloraxes(showscale=False)
-    fig.update_yaxes(title=None)
+    fig.update_yaxes(title="")
     fig.update_layout(yaxis=dict(autorange="reversed"))
     st.plotly_chart(_style(fig, height=360), use_container_width=True)
 
@@ -172,7 +172,7 @@ def team_performance(partidos: pd.DataFrame) -> None:
     )
     fig.update_traces(marker_line_width=0)
     fig.update_layout(legend=dict(orientation="h", x=0, y=1.08, font_size=11))
-    fig.update_xaxes(title=None)
+    fig.update_xaxes(title="")
     st.plotly_chart(_style(fig), use_container_width=True)
 
 
@@ -239,7 +239,7 @@ def match_timeline(eventos: pd.DataFrame) -> None:
     )
     fig.update_traces(marker=dict(size=14, line=dict(width=1, color="white")), textposition="top center")
     fig.update_xaxes(range=[0, 40], dtick=5)
-    fig.update_yaxes(title=None)
+    fig.update_yaxes(title="")
     st.plotly_chart(_style(fig, height=300), use_container_width=True)
 
 
@@ -343,7 +343,7 @@ def goals_conceded(eventos: pd.DataFrame, partidos: pd.DataFrame) -> None:
     )
     fig.update_traces(textposition="outside", marker_line_width=0)
     fig.update_coloraxes(showscale=False)
-    fig.update_yaxes(title=None)
+    fig.update_yaxes(title="")
     st.plotly_chart(_style(fig), use_container_width=True)
 
 
@@ -368,7 +368,7 @@ def top_undisciplined(eventos: pd.DataFrame) -> None:
     )
     fig.update_traces(text=data["Puntaje Malo"], textposition="outside", marker_line_width=0)
     fig.update_coloraxes(showscale=False)
-    fig.update_yaxes(title=None)
+    fig.update_yaxes(title="")
     fig.update_layout(yaxis=dict(autorange="reversed"))
     st.plotly_chart(_style(fig, height=360), use_container_width=True)
 
@@ -519,37 +519,39 @@ def goals_punchcard(eventos: pd.DataFrame, partidos: pd.DataFrame) -> None:
         st.info("Sin datos luego de agrupar.")
         return
         
-    # Ordenar para dibujar círculos más grandes al fondo
+    # Ordenar para dibujar círculos más grandes al fondo. 
+    # Al ordenar de mayor a menor, las burbujas más grandes quedan primeras en el DataFrame
+    # y Plotly las dibuja primero (quedando de fondo). Las burbujas chicas se dibujan últimas (por encima).
     agg = agg.sort_values("Cantidad", ascending=False)
     
-    # Si un equipo empató en ese tramo (mismos goles a favor y en contra), 
-    # se taparán exacto. Hacemos un pequeñísimo offset en el eje Y (equipo) 
-    # para mostrarlos desfasados (uno apenas arriba, otro apenas abajo).
-    def apply_offset(row):
-        base_y = row["Equipo"]
-        if row["Tipo"] == "A Favor":
-            return base_y
-        else:
-            return base_y + " " # Agregar un espacio final imperceptible visualmente en Plotly, 
-                                # pero Plotly lo tratará como una categoría distinta y lo correrá un micro pixel.
-                                # Plotly auto-alinea categorías parecidas si habilitamos group_norm o scatter con barmode.
-                                
-    # Mejor enfoque para Scatter categórico cruzado:
-    # Mover levemente los datos A Favor y En Contra en el eje Y en términos de categoría es sucio.
-    # Mejor configurar el marker symbol distinto si es en contra (ej: 'diamond' vs 'circle') 
-    # o usar Stripplot (barmode group para puntos). En Scatter es más limpio usar `symbol`.
+    # Para evitar que Plotly dibuje primero toda la categoría verde y luego tape TODO
+    # con la categoría roja (comportamiento default al usar el parámetro `color=`),
+    # aplicamos los colores y formas a mano en una sola traza unificada:
+    
+    color_map = {"A Favor": "#3fb950", "En Contra": "#f85149"}
+    symbol_map = {"A Favor": "circle", "En Contra": "diamond"}
+    
+    agg["Color"] = agg["Tipo"].map(color_map)
+    agg["Forma"] = agg["Tipo"].map(symbol_map)
     
     fig = px.scatter(
-        agg, x="Tramo", y="Equipo", size="Cantidad", color="Tipo",
-        color_discrete_map={"A Favor": "#3fb950", "En Contra": "#f85149"},
-        symbol="Tipo", symbol_map={"A Favor": "circle", "En Contra": "diamond"},
-        hover_data=["Cantidad"], template=_TEMPLATE,
-        labels={"Tramo": "Minuto"}, opacity=1.0
+        agg, x="Tramo", y="Equipo", size="Cantidad",
+        color="Color", color_discrete_map="identity", # Forza a usar el color literal de la columna
+        symbol="Forma", symbol_map="identity",
+        hover_data={"Cantidad": True, "Tipo": True, "Color": False, "Forma": False},
+        template=_TEMPLATE, labels={"Tramo": "Minuto"}, opacity=1.0
     )
+    
     fig.update_traces(marker=dict(line=dict(width=1, color="white")))
-    fig.update_layout(legend=dict(orientation="h", x=0, y=1.1, font_size=11))
-    fig.update_xaxes(title=None, categoryorder="array", categoryarray=labels)
-    fig.update_yaxes(title=None)
+    fig.update_layout(showlegend=False) # Custom legend omitted as it's hard if identity mapped
+    
+    # Fake legend annotations as we mapped identity
+    fig.add_scatter(x=[None], y=[None], mode='markers', marker=dict(size=10, color='#3fb950', symbol='circle'), name='A Favor')
+    fig.add_scatter(x=[None], y=[None], mode='markers', marker=dict(size=10, color='#f85149', symbol='diamond'), name='En Contra')
+    fig.update_layout(legend=dict(orientation="h", x=0, y=1.1, font_size=11), showlegend=True)
+    
+    fig.update_xaxes(title="", categoryorder="array", categoryarray=labels)
+    fig.update_yaxes(title="")
     
     st.plotly_chart(_style(fig, height=max(400, len(agg["Equipo"].unique()) * 40)), use_container_width=True)
 
