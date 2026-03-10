@@ -348,13 +348,13 @@ def goals_conceded(eventos: pd.DataFrame, partidos: pd.DataFrame) -> None:
 
 
 def top_undisciplined(eventos: pd.DataFrame) -> None:
-    st.markdown('<div class="section-title">🪓 Top Jugadores más Indisciplinados <span style="font-size:0.8rem; font-weight:normal; color:#8b949e;">(🟨/🟦=1pt, 🔵=2pts, 🟥=3pts)</span></div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-title">🪓 Top Jugadores más Indisciplinados <span style="font-size:0.8rem; font-weight:normal; color:#8b949e;">(Falta=1, 🟨/🟦=2, 🔵=3, 🟥=4)</span></div>', unsafe_allow_html=True)
     tarjetas = eventos[eventos["tipo_evento"].isin(["Falta", "Amarilla", "Roja", "Azul I", "Azul D"])].copy()
     if tarjetas.empty:
         st.info("Sin datos de indisciplina.")
         return
         
-    pesos = {"Falta": 0, "Amarilla": 1, "Azul I": 1, "Azul D": 2, "Roja": 3}
+    pesos = {"Falta": 1, "Amarilla": 2, "Azul I": 2, "Azul D": 3, "Roja": 4}
     tarjetas["Peso"] = tarjetas["tipo_evento"].map(pesos)
     tarjetas["jugador_equipo"] = tarjetas["jugador"] + " (" + tarjetas["equipo"] + ")"
     
@@ -387,8 +387,8 @@ def efficiency_vs_discipline(eventos: pd.DataFrame, partidos: pd.DataFrame) -> N
     goles = eventos[eventos["tipo_evento"] == "Gol"].groupby("equipo").size().reset_index(name="Goles")
     
     # Indisciplina
-    tarjetas = eventos[eventos["tipo_evento"].isin(["Amarilla", "Roja", "Azul I", "Azul D"])].copy()
-    pesos = {"Amarilla": 1, "Azul I": 1, "Azul D": 2, "Roja": 3}
+    tarjetas = eventos[eventos["tipo_evento"].isin(["Falta", "Amarilla", "Roja", "Azul I", "Azul D"])].copy()
+    pesos = {"Falta": 1, "Amarilla": 2, "Azul I": 2, "Azul D": 3, "Roja": 4}
     tarjetas["Peso"] = tarjetas["tipo_evento"].map(pesos)
     disc = tarjetas.groupby("equipo", as_index=False)["Peso"].sum().rename(columns={"Peso": "Puntos_Disc"})
     
@@ -469,7 +469,11 @@ def top_scorers_timeline(eventos: pd.DataFrame, top_n: int = 5) -> None:
     )
     
     fig.update_xaxes(type="category") 
-    fig.update_layout(legend=dict(orientation="h", x=0, y=1.1, font_size=11), margin=dict(t=50))
+    fig.update_yaxes(title=None, dtick=1)
+    
+    # We move the legend so it doesn't overlap lines/titles if the plot gets crowded 
+    # and we ensure text isn't placed on the chart if text is not strictly needed.
+    fig.update_layout(legend=dict(orientation="h", x=0, y=1.15, font_size=11), margin=dict(t=60))
     st.plotly_chart(_style(fig), use_container_width=True)
 
 

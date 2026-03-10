@@ -8,7 +8,7 @@ import pandas as pd
 # ─── Tabla disciplinaria ──────────────────────────────────────────────────────
 
 def disciplinary(eventos: pd.DataFrame) -> None:
-    st.markdown('<div class="section-title">🟨 Tabla Disciplinaria por Equipo <span style="font-size:0.8rem; font-weight:normal; color:#8b949e;">(🟨/🟦=1pt, 🔵=2pts, 🟥=3pts)</span></div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-title">🟨 Tabla Disciplinaria por Equipo <span style="font-size:0.8rem; font-weight:normal; color:#8b949e;">(Falta=1, 🟨/🟦=2, 🔵=3, 🟥=4)</span></div>', unsafe_allow_html=True)
 
     if eventos.empty:
         st.info("Sin datos disciplinarios.")
@@ -28,10 +28,11 @@ def disciplinary(eventos: pd.DataFrame) -> None:
             disc[col] = 0
 
     disc["Puntos disciplinarios"] = (
-        disc.get("Amarilla", 0) * 1 +
-        disc.get("Roja", 0)     * 3 +
-        disc.get("Azul I", 0)  * 1 +
-        disc.get("Azul D", 0)  * 2
+        disc.get("Falta", 0)    * 1 +
+        disc.get("Amarilla", 0) * 2 +
+        disc.get("Azul I", 0)   * 2 +
+        disc.get("Azul D", 0)   * 3 +
+        disc.get("Roja", 0)     * 4
     )
     disc = disc.sort_values("Puntos disciplinarios", ascending=False)
 
