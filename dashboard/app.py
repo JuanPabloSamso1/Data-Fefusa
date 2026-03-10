@@ -77,10 +77,12 @@ with col_g:
 with col_h:
     charts.disciplinary_timeline(eventos)
 
-# ─── Tabla de Posiciones y Resultados ────────────────────────────────────────
-col_pos, col_res = st.columns([3, 2], gap="medium")
+# ─── Tabla de Posiciones, Ranking Elo y Resultados ─────────────────────────
+col_pos, col_elo, col_res = st.columns([3, 2, 3], gap="medium")
 with col_pos:
     tables.league_standings(partidos)
+with col_elo:
+    tables.elo_ranking(partidos)
 with col_res:
     tables.match_results(partidos)
 

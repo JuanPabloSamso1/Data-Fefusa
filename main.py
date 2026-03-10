@@ -5,11 +5,16 @@ import os
 import logging
 import sys
 import pandas as pd
+from pathlib import Path
 from dotenv import load_dotenv
 
 from src.scraper import ScorefyScraper
 from src.processor import DataProcessor
 from src.db_manager import MySQLManager
+
+# Configuración de rutas
+CSV_DIR = Path("csv")
+CSV_DIR.mkdir(exist_ok=True)
 
 # Configuración básica de logging
 logging.basicConfig(
@@ -112,7 +117,25 @@ def main() -> None:
                 if not df_eventos.empty:
                     db_manager.insert_events(df_eventos, batch_size=500)
                     
-                logger.info(f"Partido {match_id} procesado y cargado con éxito en MySQL.")
+                # d. Actualizar CSVs Locales Incrementalmente
+                def _append_to_csv(df: pd.DataFrame, filename: str, subset_id: str):
+                    if df.empty: return
+                    filepath = CSV_DIR / filename
+                    if filepath.exists():
+                        existing_df = pd.read_csv(filepath)
+                        # Concatenar y eliminar duplicados basándose en el ID principal
+                        combined = pd.concat([existing_df, df]).drop_duplicates(subset=[subset_id], keep="last")
+                        combined.to_csv(filepath, index=False)
+                    else:
+                        df.to_csv(filepath, index=False)
+
+                _append_to_csv(df_torneos, "torneos.csv", "id")
+                _append_to_csv(df_equipos, "equipos.csv", "id")
+                _append_to_csv(df_partidos, "partidos.csv", "id")
+                _append_to_csv(df_jugadores, "jugadores.csv", "id")
+                _append_to_csv(df_eventos, "eventos.csv", "id")
+                
+                logger.info(f"Partido {match_id} procesado, guardado en DB y CSVs actualizados.")
                 
             except Exception as e:
                 # MANEJO ROBUSTO DE EXCEPCIONES: Si falla un partido, se loguea y continúa con el sgt.

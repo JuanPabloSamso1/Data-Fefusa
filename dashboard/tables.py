@@ -149,3 +149,75 @@ def league_standings(partidos: pd.DataFrame) -> None:
         df,
         use_container_width=True,
     )
+
+
+# ─── Ranking Elo ──────────────────────────────────────────────────────────────
+
+def elo_ranking(partidos: pd.DataFrame) -> None:
+    st.markdown('<div class="section-title">📈 Ranking Elo</div>', unsafe_allow_html=True)
+
+    if partidos.empty:
+        st.info("Sin partidos suficientes para armar el ranking Elo.")
+        return
+
+    import math
+
+    # Asegurar orden cronológico
+    if "fecha" in partidos.columns:
+        df = partidos.sort_values("fecha")
+    else:
+        df = partidos.sort_values("jornada")
+
+    elo_ratings = {}
+    INITIAL_RATING = 1500
+    K = 24
+
+    for _, row in df.iterrows():
+        l_team = row["equipo_local"]
+        v_team = row["equipo_visitante"]
+        gl = row["goles_local"]
+        gv = row["goles_visitante"]
+
+        if pd.isna(l_team) or pd.isna(v_team) or pd.isna(gl) or pd.isna(gv):
+            continue
+
+        if l_team not in elo_ratings: elo_ratings[l_team] = INITIAL_RATING
+        if v_team not in elo_ratings: elo_ratings[v_team] = INITIAL_RATING
+
+        r_local = elo_ratings[l_team]
+        r_visit = elo_ratings[v_team]
+
+        # Probabilidad esperada (sin localía)
+        exp_local = 1 / (1 + 10 ** ((r_visit - r_local) / 400))
+        exp_visit = 1 / (1 + 10 ** ((r_local - r_visit) / 400))
+
+        # Puntos obtenidos (0.5 para empate)
+        if gl > gv:
+            pts_local, pts_visit = 1, 0
+        elif gl < gv:
+            pts_local, pts_visit = 0, 1
+        else:
+            pts_local, pts_visit = 0.5, 0.5
+
+        # Ajuste suave por diferencia de gol logarítmico (aseguramos no tener log(0))
+        dif = abs(gl - gv)
+        G = math.log(dif) + 1 if dif > 0 else 1.0
+
+        change_local = K * G * (pts_local - exp_local)
+        change_visit = K * G * (pts_visit - exp_visit)
+
+        elo_ratings[l_team] += change_local
+        elo_ratings[v_team] += change_visit
+
+    # Convertir a DataFrame
+    elo_df = pd.DataFrame(list(elo_ratings.items()), columns=["Equipo", "Elo"]).sort_values("Elo", ascending=False).reset_index(drop=True)
+    elo_df.index = elo_df.index + 1
+    
+    # Formatear
+    elo_df["Elo"] = elo_df["Elo"].round().astype(int)
+
+    st.dataframe(
+        elo_df,
+        use_container_width=True,
+    )
+
