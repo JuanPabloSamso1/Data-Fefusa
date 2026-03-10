@@ -59,7 +59,7 @@ def goals_by_team(eventos: pd.DataFrame) -> None:
     )
     fig.update_traces(marker_line_width=0)
     fig.update_coloraxes(showscale=False)
-    fig.update_yaxes(title="")
+    fig.update_yaxes(title=" ")
     st.plotly_chart(_style(fig), use_container_width=True)
 
 
@@ -132,7 +132,7 @@ def top_scorers(eventos: pd.DataFrame, top_n: int = 10) -> None:
     )
     fig.update_traces(marker_line_width=0, text=data["Goles"].values, textposition="outside")
     fig.update_coloraxes(showscale=False)
-    fig.update_yaxes(title="")
+    fig.update_yaxes(title=" ")
     fig.update_layout(yaxis=dict(autorange="reversed"))
     st.plotly_chart(_style(fig, height=360), use_container_width=True)
 
@@ -172,7 +172,7 @@ def team_performance(partidos: pd.DataFrame) -> None:
     )
     fig.update_traces(marker_line_width=0)
     fig.update_layout(legend=dict(orientation="h", x=0, y=1.08, font_size=11))
-    fig.update_xaxes(title="")
+    fig.update_xaxes(title=" ")
     st.plotly_chart(_style(fig), use_container_width=True)
 
 
@@ -239,7 +239,7 @@ def match_timeline(eventos: pd.DataFrame) -> None:
     )
     fig.update_traces(marker=dict(size=14, line=dict(width=1, color="white")), textposition="top center")
     fig.update_xaxes(range=[0, 40], dtick=5)
-    fig.update_yaxes(title="")
+    fig.update_yaxes(title=" ")
     st.plotly_chart(_style(fig, height=300), use_container_width=True)
 
 
@@ -343,7 +343,7 @@ def goals_conceded(eventos: pd.DataFrame, partidos: pd.DataFrame) -> None:
     )
     fig.update_traces(textposition="outside", marker_line_width=0)
     fig.update_coloraxes(showscale=False)
-    fig.update_yaxes(title="")
+    fig.update_yaxes(title=" ")
     st.plotly_chart(_style(fig), use_container_width=True)
 
 
@@ -368,7 +368,7 @@ def top_undisciplined(eventos: pd.DataFrame) -> None:
     )
     fig.update_traces(text=data["Puntaje Malo"], textposition="outside", marker_line_width=0)
     fig.update_coloraxes(showscale=False)
-    fig.update_yaxes(title="")
+    fig.update_yaxes(title=" ")
     fig.update_layout(yaxis=dict(autorange="reversed"))
     st.plotly_chart(_style(fig, height=360), use_container_width=True)
 
@@ -550,8 +550,8 @@ def goals_punchcard(eventos: pd.DataFrame, partidos: pd.DataFrame) -> None:
     fig.add_scatter(x=[None], y=[None], mode='markers', marker=dict(size=10, color='#f85149', symbol='diamond'), name='En Contra')
     fig.update_layout(legend=dict(orientation="h", x=0, y=1.1, font_size=11), showlegend=True)
     
-    fig.update_xaxes(title="", categoryorder="array", categoryarray=labels)
-    fig.update_yaxes(title="")
+    fig.update_xaxes(title=" ", categoryorder="array", categoryarray=labels)
+    fig.update_yaxes(title=" ")
     
     st.plotly_chart(_style(fig, height=max(400, len(agg["Equipo"].unique()) * 40)), use_container_width=True)
 
