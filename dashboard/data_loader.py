@@ -37,9 +37,11 @@ def load_data():
         on="partido_id", how="left"
     )
     eventos = eventos.merge(
-        torneos[["id", "nombre"]].rename(columns={"id": "torneo_id", "nombre": "torneo"}),
+        torneos[["id", "nombre", "temporada"]].rename(columns={"id": "torneo_id", "nombre": "categoria"}),
         on="torneo_id", how="left"
     )
+    if "temporada" in eventos.columns:
+        eventos["temporada"] = eventos["temporada"].apply(lambda x: str(x).split(" - ")[-1] if pd.notna(x) else x)
 
     # ── Enriquecer partidos ─────────────────────────────────────────────────
     partidos = partidos.merge(
@@ -51,8 +53,10 @@ def load_data():
         on="equipo_visitante_id", how="left"
     )
     partidos = partidos.merge(
-        torneos[["id", "nombre"]].rename(columns={"id": "torneo_id", "nombre": "torneo"}),
+        torneos[["id", "nombre", "temporada"]].rename(columns={"id": "torneo_id", "nombre": "categoria"}),
         on="torneo_id", how="left"
     )
+    if "temporada" in partidos.columns:
+        partidos["temporada"] = partidos["temporada"].apply(lambda x: str(x).split(" - ")[-1] if pd.notna(x) else x)
 
     return eventos, partidos, jugadores, equipos, torneos

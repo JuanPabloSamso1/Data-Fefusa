@@ -153,24 +153,46 @@ def league_standings(partidos: pd.DataFrame) -> None:
 
 # ─── Ranking Elo ──────────────────────────────────────────────────────────────
 
-def elo_ranking(partidos: pd.DataFrame) -> None:
+def elo_ranking(partidos_raw: pd.DataFrame, partidos_filtrados: pd.DataFrame) -> None:
     st.markdown('<div class="section-title">📈 Ranking Elo</div>', unsafe_allow_html=True)
 
-    if partidos.empty:
+    if partidos_filtrados.empty:
         st.info("Sin partidos suficientes para armar el ranking Elo.")
         return
 
     import math
 
-    # Asegurar orden cronológico
-    if "fecha" in partidos.columns:
-        df = partidos.sort_values("fecha")
+    # Asegurar orden cronológico de TODOS los partidos suminstrados
+    if "fecha" in partidos_raw.columns:
+        df = partidos_raw.sort_values("fecha")
     else:
-        df = partidos.sort_values("jornada")
+        df = partidos_raw.sort_values("jornada")
+
+    # Limitar el historial hasta la máxima fecha/jornada del filtro actual 
+    # para que la tabla Elo refleje el estado "al cierre" del torneo/fecha seleccionada
+    if "fecha" in partidos_filtrados.columns:
+        max_limit = partidos_filtrados["fecha"].max()
+        df = df[df["fecha"] <= max_limit]
+    else:
+        max_limit = partidos_filtrados["jornada"].max()
+        df = df[df["jornada"] <= max_limit]
+
+    if df.empty:
+        st.info("No hay datos históricos para calcular el Elo en este punto.")
+        return
 
     elo_ratings = {}
     INITIAL_RATING = 1500
+    PROMOTED_RATING = 1300
     K = 24
+
+    # Determinar qué equipos estaban en cronológicamente el primer torneo registrado (Fase 1 del sistema)
+    primer_torneo_id = df.iloc[0]["torneo_id"] if "torneo_id" in df.columns else None
+    
+    equipos_arranque = set()
+    if primer_torneo_id:
+        fase1_df = df[df["torneo_id"] == primer_torneo_id]
+        equipos_arranque = set(fase1_df["equipo_local"]).union(set(fase1_df["equipo_visitante"]))
 
     for _, row in df.iterrows():
         l_team = row["equipo_local"]
@@ -181,8 +203,12 @@ def elo_ranking(partidos: pd.DataFrame) -> None:
         if pd.isna(l_team) or pd.isna(v_team) or pd.isna(gl) or pd.isna(gv):
             continue
 
-        if l_team not in elo_ratings: elo_ratings[l_team] = INITIAL_RATING
-        if v_team not in elo_ratings: elo_ratings[v_team] = INITIAL_RATING
+        # Inicialización del Elo. 
+        # Si forma parte de la tanda inicial, arranca en 1500. Si apareció por primera vez después, arranca en 1300.
+        if l_team not in elo_ratings:
+            elo_ratings[l_team] = INITIAL_RATING if l_team in equipos_arranque else PROMOTED_RATING
+        if v_team not in elo_ratings:
+            elo_ratings[v_team] = INITIAL_RATING if v_team in equipos_arranque else PROMOTED_RATING
 
         r_local = elo_ratings[l_team]
         r_visit = elo_ratings[v_team]
@@ -209,8 +235,13 @@ def elo_ranking(partidos: pd.DataFrame) -> None:
         elo_ratings[l_team] += change_local
         elo_ratings[v_team] += change_visit
 
+    # Mostrar únicamente los equipos que pertenecen al DataFrame filtrado actualmente
+    equipos_mostrar = set(partidos_filtrados["equipo_local"]).union(set(partidos_filtrados["equipo_visitante"]))
+    
+    elo_final_list = [(eq, elo) for eq, elo in elo_ratings.items() if eq in equipos_mostrar]
+
     # Convertir a DataFrame
-    elo_df = pd.DataFrame(list(elo_ratings.items()), columns=["Equipo", "Elo"]).sort_values("Elo", ascending=False).reset_index(drop=True)
+    elo_df = pd.DataFrame(elo_final_list, columns=["Equipo", "Elo"]).sort_values("Elo", ascending=False).reset_index(drop=True)
     elo_df.index = elo_df.index + 1
     
     # Formatear

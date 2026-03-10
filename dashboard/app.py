@@ -82,7 +82,7 @@ col_pos, col_elo, col_res = st.columns([3, 2, 3], gap="medium")
 with col_pos:
     tables.league_standings(partidos)
 with col_elo:
-    tables.elo_ranking(partidos)
+    tables.elo_ranking(partidos_raw, partidos)
 with col_res:
     tables.match_results(partidos)
 

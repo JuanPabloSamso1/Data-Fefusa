@@ -14,8 +14,11 @@ def render_sidebar(eventos_raw: pd.DataFrame) -> dict:
         st.markdown("### 🎛️ Filtros")
         st.divider()
 
-        torneos_opts = ["Todos"] + sorted(eventos_raw["torneo"].dropna().unique().tolist())
-        sel_torneo = st.selectbox("🏆 Torneo", torneos_opts)
+        categorias_opts = ["Todas"] + sorted(eventos_raw["categoria"].dropna().unique().tolist())
+        sel_categoria = st.selectbox("🏅 Categoría", categorias_opts)
+
+        temporadas_opts = ["Todas"] + sorted(eventos_raw["temporada"].dropna().unique().tolist())
+        sel_temporada = st.selectbox("🏆 Temporada", temporadas_opts)
 
         jornadas_opts = ["Todas"] + sorted(eventos_raw["jornada"].dropna().unique().tolist())
         sel_jornada = st.selectbox("📅 Jornada", jornadas_opts)
@@ -41,7 +44,8 @@ def render_sidebar(eventos_raw: pd.DataFrame) -> dict:
         st.caption("Datos actualizados al 10/03/2026")
 
     return {
-        "torneo":  sel_torneo,
+        "categoria": sel_categoria,
+        "temporada": sel_temporada,
         "jornada": sel_jornada,
         "equipo":  sel_equipo,
         "tipo":    sel_tipo,
@@ -51,19 +55,21 @@ def render_sidebar(eventos_raw: pd.DataFrame) -> dict:
 
 def apply_event_filters(df: pd.DataFrame, sel: dict) -> pd.DataFrame:
     """Aplica todos los filtros al DataFrame de eventos."""
-    if sel["torneo"]  != "Todos":  df = df[df["torneo"]      == sel["torneo"]]
-    if sel["jornada"] != "Todas":  df = df[df["jornada"]     == sel["jornada"]]
-    if sel["equipo"]  != "Todos":  df = df[df["equipo"]      == sel["equipo"]]
-    if sel["tipo"]    != "Todos":  df = df[df["tipo_evento"] == sel["tipo"]]
-    if sel["jugador"] != "Todos":  df = df[df["jugador"]     == sel["jugador"]]
+    if sel["categoria"] != "Todas":  df = df[df["categoria"]     == sel["categoria"]]
+    if sel["temporada"] != "Todas":  df = df[df["temporada"]     == sel["temporada"]]
+    if sel["jornada"]   != "Todas":  df = df[df["jornada"]       == sel["jornada"]]
+    if sel["equipo"]    != "Todos":  df = df[df["equipo"]        == sel["equipo"]]
+    if sel["tipo"]      != "Todos":  df = df[df["tipo_evento"]   == sel["tipo"]]
+    if sel["jugador"]   != "Todos":  df = df[df["jugador"]       == sel["jugador"]]
     return df
 
 
 def apply_match_filters(df: pd.DataFrame, sel: dict) -> pd.DataFrame:
     """Aplica filtros de torneo, jornada y equipo al DataFrame de partidos."""
-    if sel["torneo"]  != "Todos":  df = df[df["torneo"]  == sel["torneo"]]
-    if sel["jornada"] != "Todas":  df = df[df["jornada"] == sel["jornada"]]
-    if sel["equipo"]  != "Todos":
+    if sel["categoria"] != "Todas":  df = df[df["categoria"] == sel["categoria"]]
+    if sel["temporada"] != "Todas":  df = df[df["temporada"] == sel["temporada"]]
+    if sel["jornada"]   != "Todas":  df = df[df["jornada"]   == sel["jornada"]]
+    if sel["equipo"]    != "Todos":
         df = df[
             (df["equipo_local"] == sel["equipo"]) |
             (df["equipo_visitante"] == sel["equipo"])
