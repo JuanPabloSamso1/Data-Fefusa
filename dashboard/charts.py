@@ -59,8 +59,9 @@ def goals_by_team(eventos: pd.DataFrame) -> None:
         color="Goles", color_continuous_scale=["#1f6feb","#58a6ff","#79c0ff"],
         template=_TEMPLATE,
     )
-    fig.update_traces(marker_line_width=0)
-    fig.update_coloraxes(showscale=False)
+    fig.update_traces(marker_line_width=0, hovertemplate="%{y}: %{x} goles<extra></extra>")
+    fig.update_coloraxes(showscale=False, colorbar_title_text="")
+    fig.update_layout(showlegend=False)
     fig.update_yaxes(title=" ")
     st.plotly_chart(_style(fig), width="stretch")
 
