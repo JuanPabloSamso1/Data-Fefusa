@@ -18,6 +18,59 @@ class DataProcessor:
         """Genera un UUID v4 como string, utilizado para IDs faltantes."""
         return str(uuid.uuid4())
 
+    def _extract_people_entries(self, raw_players: Any) -> List[Dict[str, Any]]:
+        """
+        Aplana estructuras heterogéneas de "convocadas" y devuelve entidades de personas.
+
+        En Scorefy el bloque de planteles puede cambiar de forma entre torneos:
+        - Lista plana de personas.
+        - Lista de equipos con claves anidadas (players, squad, starters, substitutes, staff, etc.).
+        - Objetos anidados en distintos niveles.
+
+        Esta función recorre recursivamente el payload y se queda con diccionarios
+        que parecen representar personas (id + nombre o señales de CT/jugador).
+        """
+        if not raw_players:
+            return []
+
+        people_entries: List[Dict[str, Any]] = []
+
+        def walk(node: Any):
+            if isinstance(node, list):
+                for item in node:
+                    walk(item)
+                return
+
+            if not isinstance(node, dict):
+                return
+
+            # Si este nodo parece ser una persona, lo guardamos.
+            has_person_signals = any(
+                key in node
+                for key in ['name', 'firstName', 'lastName', 'isCT', 'ctRole']
+            )
+            if node.get('id') is not None and has_person_signals:
+                people_entries.append(node)
+
+            # Continuar el recorrido por estructuras anidadas frecuentes.
+            for key, value in node.items():
+                if isinstance(value, (list, dict)):
+                    walk(value)
+
+        walk(raw_players)
+
+        # Deduplicar por id manteniendo orden
+        unique_people: List[Dict[str, Any]] = []
+        seen_ids = set()
+        for person in people_entries:
+            person_id = str(person.get('id'))
+            if person_id in seen_ids:
+                continue
+            seen_ids.add(person_id)
+            unique_people.append(person)
+
+        return unique_people
+
     def process_events(self, raw_events: List[Dict[str, Any]], match_id: str) -> pd.DataFrame:
         """
         Procesa la lista de eventos puros (initialFanLog) de un partido.
@@ -105,11 +158,9 @@ class DataProcessor:
             ])
 
         player_rows = []
-        # 'raw_players' puede venir como una lista de jugadores directamente,
-        # o como una lista de dos equipos (local/visitante) donde cada uno tiene sus jugadores.
-        # Basado en la directiva, asumimos que iteramos sobre una lista de entidades de jugador.
+        people_entries = self._extract_people_entries(raw_players)
         
-        for player in raw_players:
+        for player in people_entries:
             # Skip Technical Staff (Cuerpo Técnico)
             is_ct = player.get('isCT', False)
             ct_role = player.get('ctRole')
@@ -158,7 +209,9 @@ class DataProcessor:
             ])
 
         staff_rows = []
-        for player in raw_players:
+        people_entries = self._extract_people_entries(raw_players)
+
+        for player in people_entries:
             is_ct = player.get('isCT', False)
             ct_role = player.get('ctRole')
             
@@ -242,4 +295,3 @@ class DataProcessor:
         
         logger.info(f"Metadata procesada correctamente para el partido {match_id}.")
         return df_torneos, df_partidos
-
