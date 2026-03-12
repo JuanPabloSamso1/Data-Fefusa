@@ -204,88 +204,118 @@ def goals_by_period(eventos: pd.DataFrame) -> None:
 
 def match_timeline(eventos: pd.DataFrame, tipos_permitidos: list = None) -> None:
     st.markdown('<div class="section-title">⏳ Evolución del Marcador y Eventos (Línea de Tiempo)</div>', unsafe_allow_html=True)
-    
+
     partidos_unicos = eventos["partido_id"].nunique()
     if partidos_unicos != 1:
         st.info("⏳ Seleccioná los filtros de arriba para encontrar un partido específico y ver su línea de tiempo detallada.")
         return
-        
+
     if not tipos_permitidos:
-        tipos_permitidos = ["Gol", "Amarilla", "Roja", "Azul I", "Azul D"]
-        
+        tipos_permitidos = ["Gol", "Falta", "Amarilla", "Roja", "Azul I", "Azul D", "Penal Gol", "Penal Errado"]
+
     data = eventos[eventos["tipo_evento"].isin(tipos_permitidos)].copy()
-    
     if data.empty:
         st.info("Sin eventos destacados para este partido bajo los filtros seleccionados.")
         return
-        
-    data = data.sort_values(["equipo", "minuto", "tipo_evento", "jugador"]).copy()
-    data["minuto_str"] = data["minuto"].astype(str) + "'"
-    data["etiqueta"] = data["jugador"].fillna("Sin jugador") + " (" + data["equipo"].fillna("Sin equipo") + ")"
 
-    # Evita solapamiento visual cuando hay múltiples eventos del mismo equipo/minuto
+    data = data.sort_values(["minuto", "segundo", "id"], ascending=[False, False, True]).copy()
+    data["jugador"] = data["jugador"].fillna("Sin jugador")
+    data["equipo"] = data["equipo"].fillna("Sin equipo")
+
     equipos_orden = data["equipo"].dropna().unique().tolist()
-    team_to_y = {equipo: idx for idx, equipo in enumerate(equipos_orden)}
-    data["base_y"] = data["equipo"].map(team_to_y)
+    if len(equipos_orden) < 2:
+        st.info("Se necesitan eventos de ambos equipos para renderizar la crónica en línea.")
+        return
 
-    # 1) Sub-carriles por tipo de evento dentro de cada equipo (separación vertical estable)
-    tipos_orden = ["Gol", "Falta", "Amarilla", "Roja", "Azul I", "Azul D", "Lesionado", "Penal Gol", "Penal Errado"]
-    tipos_presentes = [t for t in tipos_orden if t in data["tipo_evento"].unique().tolist()]
-    if not tipos_presentes:
-        tipos_presentes = sorted(data["tipo_evento"].dropna().unique().tolist())
-    n_tipos = len(tipos_presentes)
-    if n_tipos > 1:
-        type_offsets = {t: (i - (n_tipos - 1) / 2) * 0.10 for i, t in enumerate(tipos_presentes)}
-    else:
-        type_offsets = {tipos_presentes[0]: 0.0}
-    data["tipo_offset"] = data["tipo_evento"].map(type_offsets).fillna(0.0)
+    equipo_izq, equipo_der = equipos_orden[0], equipos_orden[1]
 
-    # 2) Jitter horizontal y vertical adicional para duplicados exactos (equipo+minuto+tipo)
-    data["dup_tipo_idx"] = data.groupby(["equipo", "minuto", "tipo_evento"]).cumcount()
-    data["dup_tipo_total"] = data.groupby(["equipo", "minuto", "tipo_evento"])["tipo_evento"].transform("size")
+    iconos = {
+        "Gol": "⚽",
+        "Falta": "🟧",
+        "Amarilla": "🟨",
+        "Roja": "🟥",
+        "Azul I": "🟦",
+        "Azul D": "🔷",
+        "Penal Gol": "✅",
+        "Penal Errado": "❌",
+        "Lesionado": "🩹",
+    }
+    evento_color = {
+        "Gol": "#3fb950",
+        "Falta": "#ff8800",
+        "Amarilla": "#d29922",
+        "Roja": "#ff4444",
+        "Azul I": "#58a6ff",
+        "Azul D": "#1f6feb",
+        "Penal Gol": "#2ea043",
+        "Penal Errado": "#a371f7",
+        "Lesionado": "#8b949e",
+    }
 
-    x_jitter = 0.24
-    y_jitter = 0.035
-    data["x_plot"] = data["minuto"] + (data["dup_tipo_idx"] - (data["dup_tipo_total"] - 1) / 2) * x_jitter
-    data["y_plot"] = data["base_y"] + data["tipo_offset"] + (data["dup_tipo_idx"] - (data["dup_tipo_total"] - 1) / 2) * y_jitter
+    data["minuto_str"] = data["minuto"].astype(str) + "'"
+    data["icono"] = data["tipo_evento"].map(iconos).fillna("•")
+    data["ev_color"] = data["tipo_evento"].map(evento_color).fillna("#c9d1d9")
 
-    fig = px.scatter(
-        data,
-        x="x_plot",
-        y="y_plot",
-        color="tipo_evento",
-        custom_data=["etiqueta", "tipo_evento", "minuto_str"],
-        text="minuto_str",
-        color_discrete_map=COLORS,
-        template=_TEMPLATE,
-        labels={"x_plot": "Minuto del Partido", "y_plot": "Equipo"},
+    css = """
+    <style>
+      .match-feed {background:#0d1117;border:1px solid #21262d;border-radius:12px;padding:10px 8px 8px 8px;}
+      .match-feed-header {display:grid;grid-template-columns:1fr 120px 1fr;color:#e6edf3;font-weight:700;padding:4px 8px 10px 8px;}
+      .match-feed-row {display:grid;grid-template-columns:1fr 120px 1fr;align-items:center;gap:10px;padding:6px 8px;border-bottom:1px solid #1b222c;}
+      .match-feed-row:last-child {border-bottom:none;}
+      .team-left, .team-right {font-size:0.9rem;line-height:1.2;display:flex;align-items:center;gap:8px;min-height:24px;}
+      .team-left {justify-content:flex-end;text-align:right;}
+      .team-right {justify-content:flex-start;text-align:left;}
+      .event-icon {font-size:0.95rem;}
+      .event-meta {display:flex;flex-direction:column;}
+      .event-player {color:#e6edf3;font-weight:600;}
+      .event-type {color:#8b949e;font-size:0.75rem;}
+      .center-col {position:relative;height:100%;display:flex;justify-content:center;align-items:center;}
+      .center-col::before {content:"";position:absolute;left:50%;top:-14px;bottom:-14px;width:2px;background:#30363d;transform:translateX(-50%);} 
+      .minute-pill {position:relative;z-index:2;background:#161b22;border:1px solid #30363d;border-radius:999px;padding:2px 8px;color:#e6edf3;font-weight:700;font-size:0.8rem;min-width:46px;text-align:center;}
+    </style>
+    """
+
+    rows_html = []
+    for _, ev in data.iterrows():
+        ev_type = str(ev["tipo_evento"])
+        player = str(ev["jugador"])
+        minuto = str(ev["minuto_str"])
+        equipo = str(ev["equipo"])
+        icono = str(ev["icono"])
+        color = str(ev["ev_color"])
+
+        event_html = (
+            f'<span class="event-icon" style="color:{color}">{icono}</span>'
+            f'<div class="event-meta"><span class="event-player">{player}</span>'
+            f'<span class="event-type">{ev_type}</span></div>'
+        )
+
+        left_html = event_html if equipo == equipo_izq else "&nbsp;"
+        right_html = event_html if equipo == equipo_der else "&nbsp;"
+
+        row = (
+            '<div class="match-feed-row">'
+            f'<div class="team-left">{left_html}</div>'
+            f'<div class="center-col"><span class="minute-pill">{minuto}</span></div>'
+            f'<div class="team-right">{right_html}</div>'
+            '</div>'
+        )
+        rows_html.append(row)
+
+    st.markdown(css, unsafe_allow_html=True)
+    st.markdown(
+        (
+            '<div class="match-feed">'
+            '<div class="match-feed-header">'
+            f'<div style="text-align:right;">{equipo_izq}</div>'
+            '<div style="text-align:center;color:#8b949e;">Minuto</div>'
+            f'<div style="text-align:left;">{equipo_der}</div>'
+            '</div>'
+            f'{"".join(rows_html)}'
+            '</div>'
+        ),
+        unsafe_allow_html=True,
     )
-    fig.update_traces(
-        marker=dict(size=11, opacity=0.95, line=dict(width=1, color="white")),
-        textposition="top center",
-        hovertemplate="<b>%{customdata[0]}</b><br>Evento: %{customdata[1]}<br>Minuto: %{customdata[2]}<extra></extra>",
-    )
-    x_min = max(-0.5, float(data["x_plot"].min()) - 1.0)
-    x_max = min(40.5, float(data["x_plot"].max()) + 1.0)
-    fig.update_xaxes(range=[x_min, x_max], dtick=5, title="Minuto del Partido")
-
-    y_min = -0.7
-    y_max = max(len(equipos_orden) - 1, 0) + 0.7
-    fig.update_yaxes(
-        title=" ",
-        tickmode="array",
-        tickvals=list(range(len(equipos_orden))),
-        ticktext=equipos_orden,
-        range=[y_min, y_max],
-    )
-
-    # Forzar título vacío para evitar que algunos renders muestren "undefined"
-    fig.update_layout(title_text="")
-
-    # Aplicar estilo primero, luego sobrescribir márgenes para que no se pisen
-    fig = _style(fig, height=320)
-    fig.update_layout(margin=dict(t=40, l=150, r=20, b=20))
-    st.plotly_chart(fig, width="stretch")
 
 
 def fouls_scatter(eventos: pd.DataFrame, partidos: pd.DataFrame) -> None:
