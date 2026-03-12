@@ -219,25 +219,72 @@ def match_timeline(eventos: pd.DataFrame, tipos_permitidos: list = None) -> None
         st.info("Sin eventos destacados para este partido bajo los filtros seleccionados.")
         return
         
+    data = data.sort_values(["equipo", "minuto", "tipo_evento", "jugador"]).copy()
     data["minuto_str"] = data["minuto"].astype(str) + "'"
-    data["etiqueta"] = data["jugador"] + " (" + data["equipo"] + ")"
-    
+    data["etiqueta"] = data["jugador"].fillna("Sin jugador") + " (" + data["equipo"].fillna("Sin equipo") + ")"
+
+    # Evita solapamiento visual cuando hay múltiples eventos del mismo equipo/minuto
+    equipos_orden = data["equipo"].dropna().unique().tolist()
+    team_to_y = {equipo: idx for idx, equipo in enumerate(equipos_orden)}
+    data["base_y"] = data["equipo"].map(team_to_y)
+
+    # 1) Sub-carriles por tipo de evento dentro de cada equipo (separación vertical estable)
+    tipos_orden = ["Gol", "Falta", "Amarilla", "Roja", "Azul I", "Azul D", "Lesionado", "Penal Gol", "Penal Errado"]
+    tipos_presentes = [t for t in tipos_orden if t in data["tipo_evento"].unique().tolist()]
+    if not tipos_presentes:
+        tipos_presentes = sorted(data["tipo_evento"].dropna().unique().tolist())
+    n_tipos = len(tipos_presentes)
+    if n_tipos > 1:
+        type_offsets = {t: (i - (n_tipos - 1) / 2) * 0.10 for i, t in enumerate(tipos_presentes)}
+    else:
+        type_offsets = {tipos_presentes[0]: 0.0}
+    data["tipo_offset"] = data["tipo_evento"].map(type_offsets).fillna(0.0)
+
+    # 2) Jitter horizontal y vertical adicional para duplicados exactos (equipo+minuto+tipo)
+    data["dup_tipo_idx"] = data.groupby(["equipo", "minuto", "tipo_evento"]).cumcount()
+    data["dup_tipo_total"] = data.groupby(["equipo", "minuto", "tipo_evento"])["tipo_evento"].transform("size")
+
+    x_jitter = 0.24
+    y_jitter = 0.035
+    data["x_plot"] = data["minuto"] + (data["dup_tipo_idx"] - (data["dup_tipo_total"] - 1) / 2) * x_jitter
+    data["y_plot"] = data["base_y"] + data["tipo_offset"] + (data["dup_tipo_idx"] - (data["dup_tipo_total"] - 1) / 2) * y_jitter
+
     fig = px.scatter(
-        data, x="minuto", y="equipo", color="tipo_evento",
-        hover_data=["etiqueta", "tipo_evento"], text="minuto_str",
-        color_discrete_map=COLORS, template=_TEMPLATE,
-        labels={"minuto": "Minuto del Partido"}
+        data,
+        x="x_plot",
+        y="y_plot",
+        color="tipo_evento",
+        custom_data=["etiqueta", "tipo_evento", "minuto_str"],
+        text="minuto_str",
+        color_discrete_map=COLORS,
+        template=_TEMPLATE,
+        labels={"x_plot": "Minuto del Partido", "y_plot": "Equipo"},
     )
-    fig.update_traces(marker=dict(size=14, line=dict(width=1, color="white")), textposition="top center")
-    fig.update_xaxes(range=[-0.5, 40], dtick=5)
-    
-    # Rango en Y más amplio (-0.8 a 1.8) para empujar los dos equipos hacia el centro
-    fig.update_yaxes(title=" ", range=[-0.8, 1.8])
-    
+    fig.update_traces(
+        marker=dict(size=11, opacity=0.95, line=dict(width=1, color="white")),
+        textposition="top center",
+        hovertemplate="<b>%{customdata[0]}</b><br>Evento: %{customdata[1]}<br>Minuto: %{customdata[2]}<extra></extra>",
+    )
+    x_min = max(-0.5, float(data["x_plot"].min()) - 1.0)
+    x_max = min(40.5, float(data["x_plot"].max()) + 1.0)
+    fig.update_xaxes(range=[x_min, x_max], dtick=5, title="Minuto del Partido")
+
+    y_min = -0.7
+    y_max = max(len(equipos_orden) - 1, 0) + 0.7
+    fig.update_yaxes(
+        title=" ",
+        tickmode="array",
+        tickvals=list(range(len(equipos_orden))),
+        ticktext=equipos_orden,
+        range=[y_min, y_max],
+    )
+
+    # Forzar título vacío para evitar que algunos renders muestren "undefined"
+    fig.update_layout(title_text="")
+
     # Aplicar estilo primero, luego sobrescribir márgenes para que no se pisen
-    fig = _style(fig, height=300)
-    fig.update_layout(margin=dict(t=60, l=150, r=20, b=20))
-    
+    fig = _style(fig, height=320)
+    fig.update_layout(margin=dict(t=40, l=150, r=20, b=20))
     st.plotly_chart(fig, width="stretch")
 
 
