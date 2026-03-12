@@ -77,6 +77,40 @@ def inject_css() -> None:
     }
     .main-header p { color: #8b949e; margin: 6px 0 0; font-size: 0.95rem; }
 
+
+    /* ── Tabs principales ── */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 0.75rem;
+        background: #0d1117;
+        padding: 0.4rem;
+        border: 1px solid #21262d;
+        border-radius: 12px;
+        margin-bottom: 0.8rem;
+    }
+    .stTabs [data-baseweb="tab"] {
+        height: 52px;
+        border-radius: 10px;
+        padding: 0 1rem;
+        background: #161b22;
+        border: 1px solid #30363d;
+        color: #c9d1d9;
+        font-weight: 600;
+    }
+    .stTabs [data-baseweb="tab"]:hover {
+        background: #1f2937;
+        border-color: #58a6ff;
+        color: #e6edf3;
+    }
+    .stTabs [aria-selected="true"] {
+        background: linear-gradient(135deg, #1f6feb 0%, #58a6ff 100%);
+        border-color: #79c0ff;
+        color: #ffffff;
+        box-shadow: 0 6px 20px rgba(31, 111, 235, 0.35);
+    }
+    .stTabs [data-baseweb="tab-highlight"] {
+        background: transparent;
+    }
+
     hr { border-color: #21262d; margin: 24px 0; }
 </style>
 """, unsafe_allow_html=True)
