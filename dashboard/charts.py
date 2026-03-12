@@ -228,13 +228,11 @@ def match_timeline(
     data["equipo"] = data["equipo"].fillna("Sin equipo")
 
     equipos_orden = data["equipo"].dropna().unique().tolist()
-    if len(equipos_orden) < 2 and (not equipo_izq or not equipo_der):
+    if len(equipos_orden) < 2:
         st.info("Se necesitan eventos de ambos equipos para renderizar la crónica en línea.")
         return
 
-    # Mantener el orden visual elegido en filtros para integrar mejor con la UX del tab
-    if not equipo_izq or not equipo_der:
-        equipo_izq, equipo_der = equipos_orden[0], equipos_orden[1]
+    equipo_izq, equipo_der = equipos_orden[0], equipos_orden[1]
 
     iconos = {
         "Gol": "⚽",
