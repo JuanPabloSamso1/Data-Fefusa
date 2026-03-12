@@ -178,7 +178,12 @@ with tab_partido:
         partidos_timeline = partidos_raw[partidos_raw["id"] == p_id].copy()
         
         # ─── Línea de tiempo ────────────────────────
-        charts.match_timeline(eventos_timeline, tipos_permitidos=local_eventos)
+        charts.match_timeline(
+            eventos_timeline,
+            tipos_permitidos=local_eventos,
+            equipo_izq=local_eq1,
+            equipo_der=local_eq2,
+        )
     else:
         st.warning(f"No se encontró un partido entre {local_eq1} y {local_eq2} en la seleccion.")
 

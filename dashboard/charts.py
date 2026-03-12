@@ -202,7 +202,12 @@ def goals_by_period(eventos: pd.DataFrame) -> None:
     st.plotly_chart(fig, width="stretch")
 
 
-def match_timeline(eventos: pd.DataFrame, tipos_permitidos: list = None) -> None:
+def match_timeline(
+    eventos: pd.DataFrame,
+    tipos_permitidos: list = None,
+    equipo_izq: str | None = None,
+    equipo_der: str | None = None,
+) -> None:
     st.markdown('<div class="section-title">⏳ Evolución del Marcador y Eventos (Línea de Tiempo)</div>', unsafe_allow_html=True)
 
     partidos_unicos = eventos["partido_id"].nunique()
@@ -258,20 +263,20 @@ def match_timeline(eventos: pd.DataFrame, tipos_permitidos: list = None) -> None
 
     css = """
     <style>
-      .match-feed {background:#0d1117;border:1px solid #21262d;border-radius:12px;padding:10px 8px 8px 8px;}
-      .match-feed-header {display:grid;grid-template-columns:1fr 120px 1fr;color:#e6edf3;font-weight:700;padding:4px 8px 10px 8px;}
-      .match-feed-row {display:grid;grid-template-columns:1fr 120px 1fr;align-items:center;gap:10px;padding:6px 8px;border-bottom:1px solid #1b222c;}
-      .match-feed-row:last-child {border-bottom:none;}
-      .team-left, .team-right {font-size:0.9rem;line-height:1.2;display:flex;align-items:center;gap:8px;min-height:24px;}
-      .team-left {justify-content:flex-end;text-align:right;}
-      .team-right {justify-content:flex-start;text-align:left;}
-      .event-icon {font-size:0.95rem;}
-      .event-meta {display:flex;flex-direction:column;}
-      .event-player {color:#e6edf3;font-weight:600;}
-      .event-type {color:#8b949e;font-size:0.75rem;}
-      .center-col {position:relative;height:100%;display:flex;justify-content:center;align-items:center;}
-      .center-col::before {content:"";position:absolute;left:50%;top:-14px;bottom:-14px;width:2px;background:#30363d;transform:translateX(-50%);} 
-      .minute-pill {position:relative;z-index:2;background:#161b22;border:1px solid #30363d;border-radius:999px;padding:2px 8px;color:#e6edf3;font-weight:700;font-size:0.8rem;min-width:46px;text-align:center;}
+      .fef-match-feed {background:#0d1117;border:1px solid #21262d;border-radius:12px;padding:10px 8px 8px 8px;}
+      .fef-match-feed-header {display:grid;grid-template-columns:1fr 120px 1fr;color:#e6edf3;font-weight:700;padding:4px 8px 10px 8px;}
+      .fef-match-feed-row {display:grid;grid-template-columns:1fr 120px 1fr;align-items:center;gap:10px;padding:6px 8px;border-bottom:1px solid #1b222c;}
+      .fef-match-feed-row:last-child {border-bottom:none;}
+      .fef-team-left, .fef-team-right {font-size:0.9rem;line-height:1.2;display:flex;align-items:center;gap:8px;min-height:24px;}
+      .fef-team-left {justify-content:flex-end;text-align:right;}
+      .fef-team-right {justify-content:flex-start;text-align:left;}
+      .fef-event-icon {font-size:0.95rem;}
+      .fef-event-meta {display:flex;flex-direction:column;}
+      .fef-event-player {color:#e6edf3;font-weight:600;}
+      .fef-event-type {color:#8b949e;font-size:0.75rem;}
+      .fef-center-col {position:relative;height:100%;display:flex;justify-content:center;align-items:center;}
+      .fef-center-col::before {content:"";position:absolute;left:50%;top:-14px;bottom:-14px;width:2px;background:#30363d;transform:translateX(-50%);} 
+      .fef-minute-pill {position:relative;z-index:2;background:#161b22;border:1px solid #30363d;border-radius:999px;padding:2px 8px;color:#e6edf3;font-weight:700;font-size:0.8rem;min-width:46px;text-align:center;}
     </style>
     """
 
@@ -285,19 +290,19 @@ def match_timeline(eventos: pd.DataFrame, tipos_permitidos: list = None) -> None
         color = str(ev["ev_color"])
 
         event_html = (
-            f'<span class="event-icon" style="color:{color}">{icono}</span>'
-            f'<div class="event-meta"><span class="event-player">{player}</span>'
-            f'<span class="event-type">{ev_type}</span></div>'
+            f'<span class="fef-event-icon" style="color:{color}">{icono}</span>'
+            f'<div class="fef-event-meta"><span class="fef-event-player">{player}</span>'
+            f'<span class="fef-event-type">{ev_type}</span></div>'
         )
 
-        left_html = event_html if equipo == equipo_izq else "&nbsp;"
-        right_html = event_html if equipo == equipo_der else "&nbsp;"
+        left_html = event_html if equipo == equipo_izq else ""
+        right_html = event_html if equipo == equipo_der else ""
 
         row = (
-            '<div class="match-feed-row">'
-            f'<div class="team-left">{left_html}</div>'
-            f'<div class="center-col"><span class="minute-pill">{minuto}</span></div>'
-            f'<div class="team-right">{right_html}</div>'
+            '<div class="fef-match-feed-row">'
+            f'<div class="fef-team-left">{left_html}</div>'
+            f'<div class="fef-center-col"><span class="fef-minute-pill">{minuto}</span></div>'
+            f'<div class="fef-team-right">{right_html}</div>'
             '</div>'
         )
         rows_html.append(row)
@@ -305,8 +310,8 @@ def match_timeline(eventos: pd.DataFrame, tipos_permitidos: list = None) -> None
     st.markdown(css, unsafe_allow_html=True)
     st.markdown(
         (
-            '<div class="match-feed">'
-            '<div class="match-feed-header">'
+            '<div class="fef-match-feed">'
+            '<div class="fef-match-feed-header">'
             f'<div style="text-align:right;">{equipo_izq}</div>'
             '<div style="text-align:center;color:#8b949e;">Minuto</div>'
             f'<div style="text-align:left;">{equipo_der}</div>'
