@@ -50,7 +50,7 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 # ─── KPIs ────────────────────────────────────────────────────────────────────
-kpis.render(eventos, partidos)
+kpis.render(eventos, partidos, jugador_seleccionado=sel["jugador"])
 
 # ─── Tabs ────────────────────────────────────────────────────────────────────
 tab_general, tab_goles, tab_disciplina, tab_partido = st.tabs([
@@ -71,17 +71,17 @@ with tab_general:
     with col_res:
         tables.match_results(partidos)
 
-    # ─── Rendimiento ─────────────────────────────────────────────────────────────
-    charts.team_performance(partidos)
+    # ─── Rendimiento y distribución global de eventos ──────────────────────────
+    col_perf, col_events = st.columns([3, 2], gap="medium")
+    with col_perf:
+        charts.team_performance(partidos)
+    with col_events:
+        charts.events_by_type(eventos)
 
 # ─── Tab: Análisis de Goles ──────────────────────────────────────────────────
 with tab_goles:
-    # ─── Goles por equipo · Eventos por tipo ─────────────────────────────
-    col_a, col_b = st.columns([3, 2], gap="medium")
-    with col_a:
-        charts.goals_by_team(eventos)
-    with col_b:
-        charts.events_by_type(eventos)
+    # ─── Goles por equipo ─────────────────────────────────────────────────
+    charts.goals_by_team(eventos)
 
     # ─── Goles por jornada · Ranking goleadores ──────────────────────────
     col_c, col_d = st.columns([2, 3], gap="medium")
@@ -178,7 +178,12 @@ with tab_partido:
         partidos_timeline = partidos_raw[partidos_raw["id"] == p_id].copy()
         
         # ─── Línea de tiempo ────────────────────────
-        charts.match_timeline(eventos_timeline, tipos_permitidos=local_eventos)
+        charts.match_timeline(
+            eventos_timeline,
+            tipos_permitidos=local_eventos,
+            equipo_izq=local_eq1,
+            equipo_der=local_eq2,
+        )
     else:
         st.warning(f"No se encontró un partido entre {local_eq1} y {local_eq2} en la seleccion.")
 
