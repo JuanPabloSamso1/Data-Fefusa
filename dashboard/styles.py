@@ -111,6 +111,22 @@ def inject_css() -> None:
         background: transparent;
     }
 
+
+
+    .insight-banner {
+        background: linear-gradient(135deg, rgba(31,111,235,0.22) 0%, rgba(88,166,255,0.12) 100%);
+        border: 1px solid #2f81f7;
+        border-radius: 10px;
+        padding: 10px 14px;
+        margin: 8px 0 14px 0;
+        color: #dbeafe;
+        font-weight: 500;
+    }
+
+    div[data-testid="stDataFrame"] div[role="gridcell"] {
+        font-size: 0.92rem;
+    }
+
     hr { border-color: #21262d; margin: 24px 0; }
 </style>
 """, unsafe_allow_html=True)
