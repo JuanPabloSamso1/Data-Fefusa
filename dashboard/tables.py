@@ -18,7 +18,7 @@ def _render_compact_table(df: pd.DataFrame, compact: bool, top_n: int, **kwargs)
 # ─── Tabla disciplinaria ──────────────────────────────────────────────────────
 
 def disciplinary(eventos: pd.DataFrame, compact: bool = False, top_n: int = 8) -> None:
-    st.markdown('<div class="section-title">🟨 Tabla Disciplinaria por Equipo <span style="font-size:0.8rem; font-weight:normal; color:#8b949e;">(Falta=1, 🟨/🟦=2, 🔵=3, 🟥=4)</span></div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-title">🟨 Tabla disciplinaria por equipo (acumulado) <span style="font-size:0.8rem; font-weight:normal; color:#8b949e;">(Falta=1, 🟨/🟦=2, 🔵=3, 🟥=4)</span></div>', unsafe_allow_html=True)
 
     if eventos.empty:
         st.info("Sin datos disciplinarios.")
@@ -76,13 +76,15 @@ def disciplinary(eventos: pd.DataFrame, compact: bool = False, top_n: int = 8) -
 # ─── Resultados de partidos ───────────────────────────────────────────────────
 
 def match_results(partidos: pd.DataFrame, compact: bool = False, top_n: int = 8) -> None:
-    st.markdown('<div class="section-title">🏟️ Resultados de Partidos</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-title">🏟️ Resultados de partidos filtrados</div>', unsafe_allow_html=True)
 
     if partidos.empty:
         st.info("Sin partidos para los filtros seleccionados.")
         return
 
     df = partidos.copy()
+    df["goles_local"] = pd.to_numeric(df["goles_local"], errors="coerce").fillna(0).astype(int)
+    df["goles_visitante"] = pd.to_numeric(df["goles_visitante"], errors="coerce").fillna(0).astype(int)
     df["Marcador"] = df["goles_local"].astype(str) + " - " + df["goles_visitante"].astype(str)
 
     final = (
@@ -103,7 +105,7 @@ def match_results(partidos: pd.DataFrame, compact: bool = False, top_n: int = 8)
 # ─── Tabla de Posiciones ──────────────────────────────────────────────────────
 
 def league_standings(partidos: pd.DataFrame, compact: bool = False, top_n: int = 8) -> None:
-    st.markdown('<div class="section-title">🏆 Tabla de Posiciones</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-title">🏆 Tabla de posiciones (según filtros)</div>', unsafe_allow_html=True)
 
     if partidos.empty:
         st.info("Sin partidos suficientes para armar la tabla de posiciones.")
@@ -153,7 +155,7 @@ def league_standings(partidos: pd.DataFrame, compact: bool = False, top_n: int =
 # ─── Ranking Elo ──────────────────────────────────────────────────────────────
 
 def elo_ranking(partidos_raw: pd.DataFrame, partidos_filtrados: pd.DataFrame, compact: bool = False, top_n: int = 8) -> None:
-    st.markdown('<div class="section-title">📈 Ranking Elo</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-title">📈 Ranking Elo (histórico de equipos filtrados)</div>', unsafe_allow_html=True)
 
     if partidos_filtrados.empty:
         st.info("Sin partidos suficientes para armar el ranking Elo.")

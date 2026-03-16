@@ -24,6 +24,28 @@ _BG_PAPER = "#161b22"
 _BG_PLOT  = "#0d1117"
 
 
+
+
+def _clean_text(series: pd.Series, fallback: str) -> pd.Series:
+    """Evita etiquetas rotas como None/nan en ejes, leyendas y tooltips."""
+    return (
+        series.astype(str)
+        .replace({"nan": fallback, "None": fallback, "": fallback})
+        .fillna(fallback)
+    )
+
+
+def _sort_key_jornada(value):
+    text = str(value)
+    digits = "".join(ch for ch in text if ch.isdigit() or ch == ".")
+    if digits:
+        try:
+            return float(digits)
+        except ValueError:
+            pass
+    return float("inf")
+
+
 def _style(fig, height: int | None = None):
     """Aplica el tema oscuro a cualquier figura Plotly."""
     kwargs = dict(
@@ -117,8 +139,8 @@ def top_scorers(eventos: pd.DataFrame, top_n: int = 10) -> None:
         st.info("Sin goleadores para los filtros seleccionados.")
         return
         
-    goles["jugador"] = goles["jugador"].fillna("Sin jugador")
-    goles["equipo"] = goles["equipo"].fillna("Sin equipo")
+    goles["jugador"] = _clean_text(goles["jugador"], "Sin jugador")
+    goles["equipo"] = _clean_text(goles["equipo"], "Sin equipo")
     goles["jugador_equipo"] = goles["jugador"] + " (" + goles["equipo"] + ")"
     data = (
         goles.groupby(["jugador_equipo", "equipo"], as_index=False).size()
@@ -225,16 +247,17 @@ def match_timeline(
         st.info("Sin eventos destacados para este partido bajo los filtros seleccionados.")
         return
 
-    data = data.sort_values(["minuto", "segundo", "id"], ascending=[False, False, True]).copy()
-    data["jugador"] = data["jugador"].fillna("Sin jugador")
-    data["equipo"] = data["equipo"].fillna("Sin equipo")
+    data = data.sort_values(["minuto", "segundo", "id"], ascending=[True, True, True]).copy()
+    data["jugador"] = _clean_text(data["jugador"], "Sin jugador")
+    data["equipo"] = _clean_text(data["equipo"], "Sin equipo")
 
     equipos_orden = data["equipo"].dropna().unique().tolist()
     if len(equipos_orden) < 2:
         st.info("Se necesitan eventos de ambos equipos para renderizar la crónica en línea.")
         return
 
-    equipo_izq, equipo_der = equipos_orden[0], equipos_orden[1]
+    equipo_izq = equipo_izq or equipos_orden[0]
+    equipo_der = equipo_der or equipos_orden[1]
 
     iconos = {
         "Gol": "⚽",
@@ -326,7 +349,7 @@ def match_timeline(
 
 
 def fouls_scatter(eventos: pd.DataFrame, partidos: pd.DataFrame) -> None:
-    st.markdown('<div class="section-title">⚔️ Faltas Cometidas vs Recibidas</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-title">⚔️ Faltas cometidas vs recibidas (por equipo)</div>', unsafe_allow_html=True)
     if eventos.empty or partidos.empty:
         st.info("Sin datos suficientes.")
         return
@@ -345,8 +368,11 @@ def fouls_scatter(eventos: pd.DataFrame, partidos: pd.DataFrame) -> None:
             victima = p["equipo_visitante"] if p["equipo_local"] == infractor else p["equipo_local"]
             recibidas_list.append(victima)
             
-    recibidas = pd.Series(recibidas_list).value_counts().reset_index()
-    recibidas.columns = ["equipo", "Recibidas"]
+    if recibidas_list:
+        recibidas = pd.Series(recibidas_list).value_counts().reset_index()
+        recibidas.columns = ["equipo", "Recibidas"]
+    else:
+        recibidas = pd.DataFrame(columns=["equipo", "Recibidas"])
     
     df = pd.merge(cometidas, recibidas, on="equipo", how="outer").fillna(0)
     if df.empty:
@@ -360,7 +386,7 @@ def fouls_scatter(eventos: pd.DataFrame, partidos: pd.DataFrame) -> None:
     )
     fig.update_traces(textposition="top center", marker=dict(line=dict(width=1, color="white")))
     fig.update_layout(showlegend=False, title=None)
-    # Lína diagonal x=y para ver quién pega más de lo que recibe
+    # Línea diagonal x=y para identificar balance entre cometidas y recibidas
     max_val = max(df["Cometidas"].max(), df["Recibidas"].max())
     fig.add_shape(type="line", x0=0, y0=0, x1=max_val, y1=max_val, line=dict(color="#8b949e", dash="dash"))
     st.plotly_chart(_style(fig), use_container_width=True)
@@ -390,7 +416,7 @@ def disciplinary_timeline(eventos: pd.DataFrame) -> None:
 
 
 def goals_conceded(eventos: pd.DataFrame, partidos: pd.DataFrame) -> None:
-    st.markdown('<div class="section-title">🛡️ Goles Recibidos por Equipo</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-title">🛡️ Goles recibidos por equipo (estimado por eventos de gol)</div>', unsafe_allow_html=True)
     if eventos.empty or partidos.empty:
         st.info("Sin datos para calcular goles recibidos.")
         return
@@ -411,6 +437,7 @@ def goals_conceded(eventos: pd.DataFrame, partidos: pd.DataFrame) -> None:
             recibidos_list.append(victima)
             
     if not recibidos_list:
+        st.info("Sin datos suficientes para estimar goles recibidos con los filtros actuales.")
         return
         
     data = pd.Series(recibidos_list).value_counts().reset_index()
@@ -438,6 +465,8 @@ def top_undisciplined(eventos: pd.DataFrame) -> None:
         
     pesos = {"Falta": 1, "Amarilla": 2, "Azul I": 2, "Azul D": 3, "Roja": 4}
     tarjetas["Peso"] = tarjetas["tipo_evento"].map(pesos)
+    tarjetas["jugador"] = _clean_text(tarjetas["jugador"], "Sin jugador")
+    tarjetas["equipo"] = _clean_text(tarjetas["equipo"], "Sin equipo")
     tarjetas["jugador_equipo"] = tarjetas["jugador"] + " (" + tarjetas["equipo"] + ")"
     
     data = tarjetas.groupby(["jugador_equipo", "equipo"], as_index=False)["Peso"].sum().rename(columns={"Peso": "Puntaje Malo"})
@@ -456,7 +485,7 @@ def top_undisciplined(eventos: pd.DataFrame) -> None:
 
 
 def efficiency_vs_discipline(eventos: pd.DataFrame, partidos: pd.DataFrame) -> None:
-    st.markdown('<div class="section-title">⚖️ Eficiencia Ofensiva vs Disciplina</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-title">⚖️ Eficiencia ofensiva vs disciplina (por equipo)</div>', unsafe_allow_html=True)
     if eventos.empty or partidos.empty:
         st.info("Sin datos para analizar eficiencia y disciplina.")
         return
@@ -513,7 +542,7 @@ def efficiency_vs_discipline(eventos: pd.DataFrame, partidos: pd.DataFrame) -> N
 
 
 def top_scorers_timeline(eventos: pd.DataFrame, top_n: int = 5) -> None:
-    st.markdown('<div class="section-title">📉 Carrera de Goleadores (Acumulado por Jornada)</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-title">📉 Evolución de goleadores (acumulado por jornada)</div>', unsafe_allow_html=True)
     goles = eventos[eventos["tipo_evento"] == "Gol"].copy()
     
     if goles.empty or "jornada" not in goles.columns:
@@ -530,13 +559,15 @@ def top_scorers_timeline(eventos: pd.DataFrame, top_n: int = 5) -> None:
         return
         
     goles_top = goles[goles["jugador"].isin(top_jugadores)].copy()
+    goles_top["jugador"] = _clean_text(goles_top["jugador"], "Sin jugador")
+    goles_top["equipo"] = _clean_text(goles_top["equipo"], "Sin equipo")
     goles_top["jugador_equipo"] = goles_top["jugador"] + " (" + goles_top["equipo"] + ")"
     
     # Contar goles por jugador y jornada
     daily = goles_top.groupby(["jugador_equipo", "jornada"]).size().reset_index(name="Goles")
     
     # Crear un grid completo de todas las jornadas para todos los jugadores top
-    jornadas = sorted(goles["jornada"].dropna().unique())
+    jornadas = sorted(goles["jornada"].dropna().unique(), key=_sort_key_jornada)
     grid = pd.MultiIndex.from_product([daily["jugador_equipo"].unique(), jornadas], names=["jugador_equipo", "jornada"]).to_frame(index=False)
     
     # Unir y calcular suma acumulada

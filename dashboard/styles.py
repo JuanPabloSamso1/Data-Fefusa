@@ -12,6 +12,7 @@ def inject_css() -> None:
     html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
 
     .stApp { background-color: #0d1117; color: #e6edf3; }
+    .block-container {padding-top: 1.4rem; padding-bottom: 1.2rem;}
 
     [data-testid="stSidebar"] {
         background: linear-gradient(180deg, #161b22 0%, #0d1117 100%);
@@ -56,7 +57,7 @@ def inject_css() -> None:
         color: #e6edf3;
         border-left: 4px solid #58a6ff;
         padding-left: 12px;
-        margin: 28px 0 16px 0;
+        margin: 22px 0 12px 0;
     }
 
     /* ── Header ── */
@@ -80,32 +81,35 @@ def inject_css() -> None:
 
     /* ── Tabs principales ── */
     .stTabs [data-baseweb="tab-list"] {
-        gap: 0.75rem;
-        background: #0d1117;
-        padding: 0.4rem;
-        border: 1px solid #21262d;
-        border-radius: 12px;
-        margin-bottom: 0.8rem;
+        gap: 0.9rem;
+        background: linear-gradient(180deg, #10161f 0%, #0d1117 100%);
+        padding: 0.65rem;
+        border: 1px solid #2b3440;
+        border-radius: 14px;
+        margin-bottom: 1rem;
+        box-shadow: inset 0 0 0 1px rgba(88,166,255,0.08);
     }
     .stTabs [data-baseweb="tab"] {
-        height: 52px;
-        border-radius: 10px;
-        padding: 0 1rem;
+        min-height: 58px;
+        border-radius: 12px;
+        padding: 0.55rem 1.15rem;
         background: #161b22;
-        border: 1px solid #30363d;
+        border: 1px solid #36404d;
         color: #c9d1d9;
-        font-weight: 600;
+        font-weight: 700;
+        letter-spacing: 0.01em;
     }
     .stTabs [data-baseweb="tab"]:hover {
         background: #1f2937;
-        border-color: #58a6ff;
-        color: #e6edf3;
+        border-color: #6ea8ff;
+        color: #ffffff;
+        transform: translateY(-1px);
     }
     .stTabs [aria-selected="true"] {
-        background: linear-gradient(135deg, #1f6feb 0%, #58a6ff 100%);
-        border-color: #79c0ff;
-        color: #ffffff;
-        box-shadow: 0 6px 20px rgba(31, 111, 235, 0.35);
+        background: linear-gradient(135deg, #58a6ff 0%, #9cc9ff 100%);
+        border-color: #ffffff;
+        color: #06101f;
+        box-shadow: 0 8px 22px rgba(88,166,255,0.4);
     }
     .stTabs [data-baseweb="tab-highlight"] {
         background: transparent;
@@ -117,8 +121,8 @@ def inject_css() -> None:
         background: linear-gradient(135deg, rgba(31,111,235,0.22) 0%, rgba(88,166,255,0.12) 100%);
         border: 1px solid #2f81f7;
         border-radius: 10px;
-        padding: 10px 14px;
-        margin: 8px 0 14px 0;
+        padding: 12px 16px;
+        margin: 10px 0 16px 0;
         color: #dbeafe;
         font-weight: 500;
     }
