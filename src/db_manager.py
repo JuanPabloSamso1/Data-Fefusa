@@ -142,70 +142,65 @@ class MySQLManager:
         finally:
             cursor.close()
 
+
+    def upsert_personas(self, df_personas: pd.DataFrame):
+        """
+        Inserta o actualiza personas unificadas (jugadores y cuerpo técnico).
+        """
+        if df_personas.empty:
+            return
+
+        self.connect()
+        cursor = self.connection.cursor()
+
+        query = """
+            INSERT INTO personas (id, equipo_id, nombre, tipo_persona, rol_ct)
+            VALUES (%s, %s, %s, %s, %s)
+            ON DUPLICATE KEY UPDATE
+                equipo_id = VALUES(equipo_id),
+                nombre = VALUES(nombre),
+                tipo_persona = VALUES(tipo_persona),
+                rol_ct = VALUES(rol_ct)
+        """
+
+        cols = ['id', 'equipo_id', 'nombre', 'tipo_persona', 'rol_ct']
+        records = df_personas[cols].where(pd.notnull(df_personas[cols]), None).values.tolist()
+
+        try:
+            cursor.executemany(query, records)
+            self.connection.commit()
+            logger.info(f"UPSERT exitoso para {len(records)} personas.")
+        except Error as e:
+            self.connection.rollback()
+            logger.error(f"Error haciendo UPSERT en personas: {e}")
+            raise
+        finally:
+            cursor.close()
+
     def upsert_jugadores(self, df_jugadores: pd.DataFrame):
         """
-        Inserta o actualiza jugadores (UPSERT dimensional).
+        Compatibilidad: mapea jugadores al modelo unificado de personas.
         """
         if df_jugadores.empty:
             return
 
-        self.connect()
-        cursor = self.connection.cursor()
-        
-        query = """
-            INSERT INTO jugadores (id, equipo_id, nombre)
-            VALUES (%s, %s, %s)
-            ON DUPLICATE KEY UPDATE
-                equipo_id = VALUES(equipo_id),
-                nombre = VALUES(nombre)
-        """
-        
-        cols = ['id', 'equipo_id', 'nombre']
-        records = df_jugadores[cols].where(pd.notnull(df_jugadores[cols]), None).values.tolist()
+        df_personas = df_jugadores.copy()
+        df_personas['tipo_persona'] = 'JUGADOR'
+        df_personas['rol_ct'] = None
+        self.upsert_personas(df_personas[['id', 'equipo_id', 'nombre', 'tipo_persona', 'rol_ct']])
 
-        try:
-            cursor.executemany(query, records)
-            self.connection.commit()
-            logger.info(f"UPSERT exitoso para {len(records)} jugadores.")
-        except Error as e:
-            self.connection.rollback()
-            logger.error(f"Error haciendo UPSERT en jugadores: {e}")
-            raise
-        finally:
-            cursor.close()
 
     def upsert_staff(self, df_staff: pd.DataFrame):
         """
-        Inserta o actualiza miembros del cuerpo técnico (UPSERT dimensional).
+        Compatibilidad: mapea cuerpo técnico al modelo unificado de personas.
         """
         if df_staff.empty:
             return
 
-        self.connect()
-        cursor = self.connection.cursor()
-        
-        query = """
-            INSERT INTO cuerpo_tecnico (id, equipo_id, nombre, rol)
-            VALUES (%s, %s, %s, %s)
-            ON DUPLICATE KEY UPDATE
-                equipo_id = VALUES(equipo_id),
-                nombre = VALUES(nombre),
-                rol = VALUES(rol)
-        """
-        
-        cols = ['id', 'equipo_id', 'nombre', 'rol']
-        records = df_staff[cols].where(pd.notnull(df_staff[cols]), None).values.tolist()
+        df_personas = df_staff.rename(columns={'rol': 'rol_ct'}).copy()
+        df_personas['tipo_persona'] = 'CT'
+        self.upsert_personas(df_personas[['id', 'equipo_id', 'nombre', 'tipo_persona', 'rol_ct']])
 
-        try:
-            cursor.executemany(query, records)
-            self.connection.commit()
-            logger.info(f"UPSERT exitoso para {len(records)} miembros del cuerpo técnico.")
-        except Error as e:
-            self.connection.rollback()
-            logger.error(f"Error haciendo UPSERT en cuerpo técnico: {e}")
-            raise
-        finally:
-            cursor.close()
 
     def insert_events(self, df_eventos: pd.DataFrame, batch_size: int = 500):
         """
@@ -219,7 +214,7 @@ class MySQLManager:
         cursor = self.connection.cursor()
 
         query = """
-            INSERT INTO eventos (id, partido_id, equipo_id, jugador_id, tipo_evento, 
+            INSERT INTO eventos (id, partido_id, equipo_id, persona_id, tipo_evento, 
                                 minuto, segundo, periodo)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
             ON DUPLICATE KEY UPDATE
@@ -229,7 +224,7 @@ class MySQLManager:
                 periodo = VALUES(periodo)
         """
         
-        cols = ['id', 'partido_id', 'equipo_id', 'jugador_id', 'tipo_evento', 
+        cols = ['id', 'partido_id', 'equipo_id', 'persona_id', 'tipo_evento', 
                 'minuto', 'segundo', 'periodo']
         
         # Convertimos NaNs de Pandas a Nones nativos (NULL SQL)

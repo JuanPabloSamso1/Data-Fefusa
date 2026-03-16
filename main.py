@@ -105,13 +105,22 @@ def main() -> None:
                 if not df_partidos.empty:
                     db_manager.upsert_partidos(df_partidos)
                     
-                # 3. UPSERT Jugadores
+                # 3. UPSERT Personas (jugadores + CT)
+                df_personas = pd.DataFrame(columns=['id', 'equipo_id', 'nombre', 'tipo_persona', 'rol_ct'])
                 if not df_jugadores.empty:
-                    db_manager.upsert_jugadores(df_jugadores)
-                    
-                # 4. UPSERT Cuerpo Técnico
+                    tmp_j = df_jugadores.copy()
+                    tmp_j['tipo_persona'] = 'JUGADOR'
+                    tmp_j['rol_ct'] = None
+                    df_personas = pd.concat([df_personas, tmp_j[['id', 'equipo_id', 'nombre', 'tipo_persona', 'rol_ct']]], ignore_index=True)
+
                 if not df_staff.empty:
-                    db_manager.upsert_staff(df_staff)
+                    tmp_ct = df_staff.rename(columns={'rol': 'rol_ct'}).copy()
+                    tmp_ct['tipo_persona'] = 'CT'
+                    df_personas = pd.concat([df_personas, tmp_ct[['id', 'equipo_id', 'nombre', 'tipo_persona', 'rol_ct']]], ignore_index=True)
+
+                if not df_personas.empty:
+                    df_personas.drop_duplicates(subset=['id'], keep='last', inplace=True)
+                    db_manager.upsert_personas(df_personas)
                     
                 # 5. Insertar Eventos (Con Batch Processing interno y atómico)
                 if not df_eventos.empty:
@@ -133,6 +142,9 @@ def main() -> None:
                 _append_to_csv(df_equipos, "equipos.csv", "id")
                 _append_to_csv(df_partidos, "partidos.csv", "id")
                 _append_to_csv(df_jugadores, "jugadores.csv", "id")
+                _append_to_csv(df_staff, "cuerpo_tecnico.csv", "id")
+                if not df_personas.empty:
+                    _append_to_csv(df_personas, "personas.csv", "id")
                 _append_to_csv(df_eventos, "eventos.csv", "id")
                 
                 logger.info(f"Partido {match_id} procesado, guardado en DB y CSVs actualizados.")

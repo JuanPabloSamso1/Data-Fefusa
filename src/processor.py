@@ -27,7 +27,7 @@ class DataProcessor:
             logger.warning(f"No hay eventos provistos para el partido {match_id}. Se retorna DataFrame vacío.")
             # Retorna DataFrame vacío con el esquema de la tabla 'eventos'
             return pd.DataFrame(columns=[
-                'id', 'partido_id', 'equipo_id', 'jugador_id', 'tipo_evento', 
+                'id', 'partido_id', 'equipo_id', 'persona_id', 'tipo_evento', 
                 'minuto', 'segundo', 'periodo'
             ])
 
@@ -41,7 +41,9 @@ class DataProcessor:
             # Asumimos unas claves probables (teamId, playerId, type, subType). 
             # Esto debe ajustarse si el JSON difiere.
             equipo_id = event.get('teamId')  
-            jugador_id = event.get('playerId')
+            # Algunos eventos históricos usan playerId, pero no siempre
+            # son jugadores: también puede ser una persona del CT.
+            persona_id = event.get('personId') or event.get('playerId')
             
             # El JSON usa 'scoreTypeName' para el tipo de evento
             tipo_evento = event.get('scoreTypeName', 'DESCONOCIDO')
@@ -82,7 +84,7 @@ class DataProcessor:
                 'id': str(evento_id),
                 'partido_id': str(match_id),
                 'equipo_id': str(equipo_id) if equipo_id else None,
-                'jugador_id': str(jugador_id) if jugador_id else None,
+                'persona_id': str(persona_id) if persona_id else None,
                 'tipo_evento': str(tipo_evento),
                 'minuto': int(minuto),
                 'segundo': int(segundo),
@@ -242,4 +244,3 @@ class DataProcessor:
         
         logger.info(f"Metadata procesada correctamente para el partido {match_id}.")
         return df_torneos, df_partidos
-
