@@ -63,7 +63,7 @@ def goals_by_team(eventos: pd.DataFrame) -> None:
     fig.update_coloraxes(showscale=False, colorbar_title_text="")
     fig.update_layout(showlegend=False, title=None)
     fig.update_yaxes(title=" ")
-    st.plotly_chart(_style(fig), width="stretch")
+    st.plotly_chart(_style(fig), use_container_width=True)
 
 
 def events_by_type(eventos: pd.DataFrame) -> None:
@@ -86,7 +86,7 @@ def events_by_type(eventos: pd.DataFrame) -> None:
         showlegend=False, paper_bgcolor=_BG_PAPER, plot_bgcolor=_BG_PLOT,
         font=dict(family="Inter", color="#e6edf3"), margin=dict(t=20, b=20, l=20, r=20),
     )
-    st.plotly_chart(fig, width="stretch")
+    st.plotly_chart(fig, use_container_width=True)
 
 
 def goals_by_round(eventos: pd.DataFrame) -> None:
@@ -107,7 +107,7 @@ def goals_by_round(eventos: pd.DataFrame) -> None:
         labels={"jornada": "Jornada"}, template=_TEMPLATE, text="Goles",
     )
     fig.update_traces(textposition="outside", textfont_color="#e6edf3", marker_line_width=0)
-    st.plotly_chart(_style(fig), width="stretch")
+    st.plotly_chart(_style(fig), use_container_width=True)
 
 
 def top_scorers(eventos: pd.DataFrame, top_n: int = 10) -> None:
@@ -139,7 +139,7 @@ def top_scorers(eventos: pd.DataFrame, top_n: int = 10) -> None:
     fig.update_coloraxes(showscale=False)
     fig.update_yaxes(title=" ")
     fig.update_layout(yaxis=dict(autorange="reversed"))
-    st.plotly_chart(_style(fig, height=360), width="stretch")
+    st.plotly_chart(_style(fig, height=360), use_container_width=True)
 
 
 def team_performance(partidos: pd.DataFrame) -> None:
@@ -178,7 +178,7 @@ def team_performance(partidos: pd.DataFrame) -> None:
     fig.update_traces(marker_line_width=0)
     fig.update_layout(legend=dict(orientation="h", x=0, y=1.08, font_size=11))
     fig.update_xaxes(title=" ")
-    st.plotly_chart(_style(fig), width="stretch")
+    st.plotly_chart(_style(fig), use_container_width=True)
 
 
 
@@ -201,7 +201,7 @@ def goals_by_period(eventos: pd.DataFrame) -> None:
     )
     fig.update_traces(textposition="inside", textinfo="percent+label+value", textfont_size=12)
     fig.update_layout(showlegend=False, paper_bgcolor=_BG_PAPER, plot_bgcolor=_BG_PLOT)
-    st.plotly_chart(fig, width="stretch")
+    st.plotly_chart(fig, use_container_width=True)
 
 
 def match_timeline(
@@ -363,7 +363,7 @@ def fouls_scatter(eventos: pd.DataFrame, partidos: pd.DataFrame) -> None:
     # Lína diagonal x=y para ver quién pega más de lo que recibe
     max_val = max(df["Cometidas"].max(), df["Recibidas"].max())
     fig.add_shape(type="line", x0=0, y0=0, x1=max_val, y1=max_val, line=dict(color="#8b949e", dash="dash"))
-    st.plotly_chart(_style(fig), width="stretch")
+    st.plotly_chart(_style(fig), use_container_width=True)
 
 
 def disciplinary_timeline(eventos: pd.DataFrame) -> None:
@@ -386,7 +386,7 @@ def disciplinary_timeline(eventos: pd.DataFrame) -> None:
         labels={"Tramo": "Minuto de Partido", "tipo_evento": "Tarjeta"}
     )
     fig.update_traces(marker_line_width=0)
-    st.plotly_chart(_style(fig), width="stretch")
+    st.plotly_chart(_style(fig), use_container_width=True)
 
 
 def goals_conceded(eventos: pd.DataFrame, partidos: pd.DataFrame) -> None:
@@ -426,7 +426,7 @@ def goals_conceded(eventos: pd.DataFrame, partidos: pd.DataFrame) -> None:
     fig.update_traces(textposition="outside", marker_line_width=0)
     fig.update_coloraxes(showscale=False)
     fig.update_yaxes(title=" ")
-    st.plotly_chart(_style(fig), width="stretch")
+    st.plotly_chart(_style(fig), use_container_width=True)
 
 
 def top_undisciplined(eventos: pd.DataFrame) -> None:
@@ -452,7 +452,7 @@ def top_undisciplined(eventos: pd.DataFrame) -> None:
     fig.update_coloraxes(showscale=False)
     fig.update_yaxes(title=" ")
     fig.update_layout(yaxis=dict(autorange="reversed"))
-    st.plotly_chart(_style(fig, height=360), width="stretch")
+    st.plotly_chart(_style(fig, height=360), use_container_width=True)
 
 
 def efficiency_vs_discipline(eventos: pd.DataFrame, partidos: pd.DataFrame) -> None:
@@ -509,7 +509,7 @@ def efficiency_vs_discipline(eventos: pd.DataFrame, partidos: pd.DataFrame) -> N
         fig.add_vline(x=mean_x, line_width=1, line_dash="dash", line_color="#8b949e", annotation_text="Media Goles")
         fig.add_hline(y=mean_y, line_width=1, line_dash="dash", line_color="#8b949e", annotation_text="Media Disc.")
         
-    st.plotly_chart(_style(fig), width="stretch")
+    st.plotly_chart(_style(fig), use_container_width=True)
 
 
 def top_scorers_timeline(eventos: pd.DataFrame, top_n: int = 5) -> None:
@@ -556,7 +556,7 @@ def top_scorers_timeline(eventos: pd.DataFrame, top_n: int = 5) -> None:
     # We move the legend so it doesn't overlap lines/titles if the plot gets crowded 
     # and we ensure text isn't placed on the chart if text is not strictly needed.
     fig.update_layout(legend=dict(orientation="h", x=0, y=1.15, font_size=11), margin=dict(t=60))
-    st.plotly_chart(_style(fig), width="stretch")
+    st.plotly_chart(_style(fig), use_container_width=True)
 
 
 
@@ -610,7 +610,7 @@ def tiros_castigo_bar(eventos: pd.DataFrame, partidos: pd.DataFrame) -> None:
     fig.update_layout(legend=dict(orientation="h", x=0, y=1.08, font_size=11))
     fig.update_xaxes(title="Tiros Castigo", dtick=1)
     fig.update_yaxes(title=" ")
-    st.plotly_chart(_style(fig, height=max(300, len(df_grouped["equipo"].unique()) * 30)), width="stretch")
+    st.plotly_chart(_style(fig, height=max(300, len(df_grouped["equipo"].unique()) * 30)), use_container_width=True)
 
 def tiros_castigo_scatter(eventos: pd.DataFrame) -> None:
     st.markdown('<div class="section-title">🎯 Faltas vs Tiros Castigos Cometidos</div>', unsafe_allow_html=True)
@@ -643,5 +643,5 @@ def tiros_castigo_scatter(eventos: pd.DataFrame) -> None:
     fig.update_layout(showlegend=False, title=None)
     fig.update_yaxes(dtick=1)
     
-    st.plotly_chart(_style(fig), width="stretch")
+    st.plotly_chart(_style(fig), use_container_width=True)
 
