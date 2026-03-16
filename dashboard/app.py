@@ -148,7 +148,7 @@ with mod_general:
         charts.events_by_type(eventos)
 
     st.markdown("### 🧾 Tabla clave")
-    tables.league_standings(partidos, compact=True, top_n=10)
+    tables.league_standings(partidos, compact=False)
 
 with mod_equipos:
     st.markdown("### 🛡️ Equipos")
@@ -162,7 +162,7 @@ with mod_equipos:
         charts.efficiency_vs_discipline(eventos, partidos)
 
     st.markdown("### 🧾 Tabla clave")
-    tables.elo_ranking(partidos_raw, partidos, compact=True, top_n=10)
+    tables.elo_ranking(partidos_raw, partidos, compact=False)
 
 with mod_jugadores:
     st.markdown("### 👤 Jugadores")
@@ -207,61 +207,59 @@ with mod_pred:
         col_a, col_b = st.columns(2)
         with col_a:
             team_a = st.selectbox("🛡️ Equipo A", equipos_pred, index=0)
-        with col_b:
-            idx_b = 1 if len(equipos_pred) > 1 else 0
-            team_b = st.selectbox("🛡️ Equipo B", equipos_pred, index=idx_b)
 
-        if team_a == team_b:
-            st.warning("Seleccioná dos equipos distintos para calcular la predicción del próximo partido.")
+        team_b_opts = [eq for eq in equipos_pred if eq != team_a]
+        with col_b:
+            team_b = st.selectbox("🛡️ Equipo B", team_b_opts, index=0)
+
+        pred = predictions.predict_match(base_matches, team_a, team_b)
+        probs = pred["probs"]
+        render_insight(
+            f"Para el próximo cruce estimado {team_a} vs {team_b}, la opción más probable es "
+            f"{('victoria de ' + team_a) if probs['win_a'] >= max(probs['draw'], probs['win_b']) else ('empate' if probs['draw'] >= probs['win_b'] else ('victoria de ' + team_b))}."
+        )
+
+        st.markdown("### 1) Probabilidad de resultado del próximo partido")
+        pcol1, pcol2, pcol3 = st.columns(3)
+        pcol1.metric(f"Gana {team_a}", f"{probs['win_a']*100:.1f}%")
+        pcol2.metric("Empate", f"{probs['draw']*100:.1f}%")
+        pcol3.metric(f"Gana {team_b}", f"{probs['win_b']*100:.1f}%")
+        st.caption("Modelo Poisson independiente sobre goles esperados. No depende fuertemente de localía.")
+
+        st.markdown("### 2) Goles esperados del partido")
+        xcol1, xcol2, xcol3 = st.columns(3)
+        xcol1.metric(f"xG {team_a}", f"{pred['xg_a']:.2f}")
+        xcol2.metric(f"xG {team_b}", f"{pred['xg_b']:.2f}")
+        xcol3.metric("xG Total", f"{pred['xg_total']:.2f}")
+        st.caption(f"Calidad de muestra: {pred['quality']} · {pred['details']}")
+
+        st.markdown("### 3) Proyección simple de tabla (+1 fecha)")
+        proj = predictions.project_table(base_matches, simulations=800)
+        if proj.empty:
+            st.info("No hay datos suficientes para proyectar la tabla.")
         else:
-            pred = predictions.predict_match(base_matches, team_a, team_b)
-            probs = pred["probs"]
+            chance_up = proj.sort_values("Prob. subir", ascending=False).iloc[0]
+            chance_down = proj.sort_values("Prob. bajar", ascending=False).iloc[0]
             render_insight(
-                f"Para el próximo cruce estimado {team_a} vs {team_b}, la opción más probable es "
-                f"{('victoria de ' + team_a) if probs['win_a'] >= max(probs['draw'], probs['win_b']) else ('empate' if probs['draw'] >= probs['win_b'] else ('victoria de ' + team_b))}."
+                f"Mayor chance de subir: {chance_up['Equipo']} ({chance_up['Prob. subir']*100:.1f}%). "
+                f"Mayor riesgo de bajar: {chance_down['Equipo']} ({chance_down['Prob. bajar']*100:.1f}%)."
             )
 
-            st.markdown("### 1) Probabilidad de resultado del próximo partido")
-            pcol1, pcol2, pcol3 = st.columns(3)
-            pcol1.metric(f"Gana {team_a}", f"{probs['win_a']*100:.1f}%")
-            pcol2.metric("Empate", f"{probs['draw']*100:.1f}%")
-            pcol3.metric(f"Gana {team_b}", f"{probs['win_b']*100:.1f}%")
-            st.caption("Modelo Poisson independiente sobre goles esperados. No depende fuertemente de localía.")
-
-            st.markdown("### 2) Goles esperados del partido")
-            xcol1, xcol2, xcol3 = st.columns(3)
-            xcol1.metric(f"xG {team_a}", f"{pred['xg_a']:.2f}")
-            xcol2.metric(f"xG {team_b}", f"{pred['xg_b']:.2f}")
-            xcol3.metric("xG Total", f"{pred['xg_total']:.2f}")
-            st.caption(f"Calidad de muestra: {pred['quality']} · {pred['details']}")
-
-            st.markdown("### 3) Proyección simple de tabla (+1 fecha)")
-            proj = predictions.project_table(base_matches, simulations=800)
-            if proj.empty:
-                st.info("No hay datos suficientes para proyectar la tabla.")
-            else:
-                chance_up = proj.sort_values("Prob. subir", ascending=False).iloc[0]
-                chance_down = proj.sort_values("Prob. bajar", ascending=False).iloc[0]
-                render_insight(
-                    f"Mayor chance de subir: {chance_up['Equipo']} ({chance_up['Prob. subir']*100:.1f}%). "
-                    f"Mayor riesgo de bajar: {chance_down['Equipo']} ({chance_down['Prob. bajar']*100:.1f}%)."
-                )
-
-                st.dataframe(
-                    proj,
-                    use_container_width=True,
-                    hide_index=True,
-                    column_config={
-                        "Equipo": st.column_config.TextColumn("Equipo", width="medium"),
-                        "Pos actual": st.column_config.NumberColumn("Pos actual", format="%d"),
-                        "PTS actuales": st.column_config.NumberColumn("PTS actuales", format="%d"),
-                        "PTS esperados (+1 fecha)": st.column_config.NumberColumn("PTS esperados", format="%.2f"),
-                        "Pos esperada": st.column_config.NumberColumn("Pos esperada", format="%.2f"),
-                        "Prob. subir": st.column_config.ProgressColumn("Prob. subir", min_value=0.0, max_value=1.0, format="%.2f"),
-                        "Prob. bajar": st.column_config.ProgressColumn("Prob. bajar", min_value=0.0, max_value=1.0, format="%.2f"),
-                        "Cambio probable": st.column_config.TextColumn("Cambio probable", width="small"),
-                    },
-                )
+            st.dataframe(
+                proj,
+                use_container_width=True,
+                hide_index=True,
+                column_config={
+                    "Equipo": st.column_config.TextColumn("Equipo", width="medium"),
+                    "Pos actual": st.column_config.NumberColumn("Pos actual", format="%d"),
+                    "PTS actuales": st.column_config.NumberColumn("PTS actuales", format="%d"),
+                    "PTS esperados (+1 fecha)": st.column_config.NumberColumn("PTS esperados", format="%.2f"),
+                    "Pos esperada": st.column_config.NumberColumn("Pos esperada", format="%.2f"),
+                    "Prob. subir": st.column_config.ProgressColumn("Prob. subir", min_value=0.0, max_value=1.0, format="%.2f"),
+                    "Prob. bajar": st.column_config.ProgressColumn("Prob. bajar", min_value=0.0, max_value=1.0, format="%.2f"),
+                    "Cambio probable": st.column_config.TextColumn("Cambio probable", width="small"),
+                },
+            )
 
             with st.expander("ℹ️ Cómo funciona este modelo"):
                 st.markdown(
