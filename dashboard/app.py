@@ -28,10 +28,10 @@ from dashboard.styles import inject_css
 inject_css()
 
 # ─── Carga de datos ───────────────────────────────────────────────────────────
-eventos_raw, partidos_raw, jugadores, equipos, torneos = load_data()
+eventos_raw, partidos_raw, personas, equipos, torneos = load_data()
 
 # ─── Sidebar / Filtros ────────────────────────────────────────────────────────
-sel = filters.render_sidebar(eventos_raw)
+sel = filters.render_sidebar(eventos_raw, personas)
 
 # ─── Aplicar filtros ──────────────────────────────────────────────────────────
 eventos  = filters.apply_event_filters(eventos_raw, sel)

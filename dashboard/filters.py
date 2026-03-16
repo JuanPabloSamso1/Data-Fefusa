@@ -5,7 +5,7 @@ import streamlit as st
 import pandas as pd
 
 
-def render_sidebar(eventos_raw: pd.DataFrame) -> dict:
+def render_sidebar(eventos_raw: pd.DataFrame, personas_raw: pd.DataFrame) -> dict:
     """
     Muestra los controles de filtro en la sidebar y retorna un dict con las selecciones.
     """
@@ -31,14 +31,30 @@ def render_sidebar(eventos_raw: pd.DataFrame) -> dict:
         tipos_opts = ["Todos"] + sorted(eventos_raw["tipo_evento"].dropna().unique().tolist())
         sel_tipo = st.selectbox("📌 Tipo de evento", tipos_opts)
 
-        # Jugadores dinámicos según equipo seleccionado
+        # Jugadores dinámicos según equipo seleccionado (incluye jugadores sin eventos)
+        jugadores_base = personas_raw.copy()
+        if "tipo_persona" in jugadores_base.columns:
+            jugadores_base = jugadores_base[jugadores_base["tipo_persona"] == "JUGADOR"]
+
         if sel_equipo != "Todos":
-            jugadores_pool = (
-                eventos_raw[eventos_raw["equipo"] == sel_equipo]["jugador"]
-                .dropna().unique().tolist()
-            )
-        else:
-            jugadores_pool = eventos_raw["jugador"].dropna().unique().tolist()
+            equipo_ids = eventos_raw.loc[eventos_raw["equipo"] == sel_equipo, "equipo_id"].dropna().unique().tolist()
+            if equipo_ids:
+                jugadores_base = jugadores_base[jugadores_base["equipo_id"].isin(equipo_ids)]
+            else:
+                jugadores_base = jugadores_base.iloc[0:0]
+
+        jugadores_pool = jugadores_base["nombre"].dropna().unique().tolist()
+
+        # Fallback por compatibilidad si no hay personas disponibles
+        if not jugadores_pool:
+            if sel_equipo != "Todos":
+                jugadores_pool = (
+                    eventos_raw[eventos_raw["equipo"] == sel_equipo]["jugador"]
+                    .dropna().unique().tolist()
+                )
+            else:
+                jugadores_pool = eventos_raw["jugador"].dropna().unique().tolist()
+
         jugadores_opts = ["Todos"] + sorted(jugadores_pool)
         sel_jugador = st.selectbox("👤 Jugador", jugadores_opts)
 
