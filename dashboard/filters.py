@@ -5,6 +5,26 @@ import streamlit as st
 import pandas as pd
 
 
+def _default_index(options: list, preferred: str) -> int:
+    return options.index(preferred) if preferred in options else 0
+
+
+def _safe_state_value(key: str, options: list, preferred: str) -> None:
+    """Garantiza que session_state tenga un valor válido para un selectbox."""
+    if st.session_state.get(key) not in options:
+        st.session_state[key] = preferred if preferred in options else options[0]
+
+
+def _reset_sidebar_filters() -> None:
+    """Restablece todos los widgets de la barra lateral a sus valores por defecto."""
+    st.session_state["f_categoria"] = "Primera FSP" if "Primera FSP" in st.session_state.get("_categorias_opts", []) else "Todas"
+    st.session_state["f_temporada"] = "Apertura 2026" if "Apertura 2026" in st.session_state.get("_temporadas_opts", []) else "Todas"
+    st.session_state["f_jornada"] = "Todas"
+    st.session_state["f_equipo"] = "Todos"
+    st.session_state["f_tipo"] = "Todos"
+    st.session_state["f_jugador"] = "Todos"
+
+
 def render_sidebar(eventos_raw: pd.DataFrame, personas_raw: pd.DataFrame) -> dict:
     """
     Muestra los controles de filtro en la sidebar y retorna un dict con las selecciones.
@@ -12,24 +32,45 @@ def render_sidebar(eventos_raw: pd.DataFrame, personas_raw: pd.DataFrame) -> dic
     with st.sidebar:
         st.markdown("## ⚽ FEFUSA")
         st.markdown("### 🎛️ Filtros")
-        st.divider()
 
         categorias_opts = ["Todas"] + sorted(eventos_raw["categoria"].dropna().unique().tolist())
-        default_cat_idx = categorias_opts.index("Primera FSP") if "Primera FSP" in categorias_opts else 0
-        sel_categoria = st.selectbox("🏅 Categoría", categorias_opts, index=default_cat_idx)
-
         temporadas_opts = ["Todas"] + sorted(eventos_raw["temporada"].dropna().unique().tolist())
-        default_temp_idx = temporadas_opts.index("Apertura 2026") if "Apertura 2026" in temporadas_opts else 0
-        sel_temporada = st.selectbox("🏆 Temporada", temporadas_opts, index=default_temp_idx)
+        st.session_state["_categorias_opts"] = categorias_opts
+        st.session_state["_temporadas_opts"] = temporadas_opts
+
+        if st.button("🧹 Limpiar filtros", use_container_width=True):
+            _reset_sidebar_filters()
+            st.rerun()
+
+        st.divider()
+
+        _safe_state_value("f_categoria", categorias_opts, "Primera FSP")
+        sel_categoria = st.selectbox(
+            "🏅 Categoría",
+            categorias_opts,
+            index=_default_index(categorias_opts, "Primera FSP"),
+            key="f_categoria",
+        )
+
+        _safe_state_value("f_temporada", temporadas_opts, "Apertura 2026")
+        sel_temporada = st.selectbox(
+            "🏆 Temporada",
+            temporadas_opts,
+            index=_default_index(temporadas_opts, "Apertura 2026"),
+            key="f_temporada",
+        )
 
         jornadas_opts = ["Todas"] + sorted(eventos_raw["jornada"].dropna().unique().tolist())
-        sel_jornada = st.selectbox("📅 Jornada", jornadas_opts)
+        _safe_state_value("f_jornada", jornadas_opts, "Todas")
+        sel_jornada = st.selectbox("📅 Jornada", jornadas_opts, key="f_jornada")
 
         equipos_opts = ["Todos"] + sorted(eventos_raw["equipo"].dropna().unique().tolist())
-        sel_equipo = st.selectbox("🛡️ Equipo", equipos_opts)
+        _safe_state_value("f_equipo", equipos_opts, "Todos")
+        sel_equipo = st.selectbox("🛡️ Equipo", equipos_opts, key="f_equipo")
 
         tipos_opts = ["Todos"] + sorted(eventos_raw["tipo_evento"].dropna().unique().tolist())
-        sel_tipo = st.selectbox("📌 Tipo de evento", tipos_opts)
+        _safe_state_value("f_tipo", tipos_opts, "Todos")
+        sel_tipo = st.selectbox("📌 Tipo de evento", tipos_opts, key="f_tipo")
 
         # Jugadores dinámicos según equipo seleccionado (incluye jugadores sin eventos)
         jugadores_base = personas_raw.copy()
@@ -56,7 +97,16 @@ def render_sidebar(eventos_raw: pd.DataFrame, personas_raw: pd.DataFrame) -> dic
                 jugadores_pool = eventos_raw["jugador"].dropna().unique().tolist()
 
         jugadores_opts = ["Todos"] + sorted(jugadores_pool)
-        sel_jugador = st.selectbox("👤 Jugador", jugadores_opts)
+        _safe_state_value("f_jugador", jugadores_opts, "Todos")
+        sel_jugador = st.selectbox("👤 Jugador", jugadores_opts, key="f_jugador")
+
+        breadcrumb = " > ".join([
+            sel_categoria if sel_categoria != "Todas" else "Todas las Categorías",
+            sel_temporada if sel_temporada != "Todas" else "Todas las Temporadas",
+            sel_equipo if sel_equipo != "Todos" else "Todos los Equipos",
+            sel_jugador if sel_jugador != "Todos" else "Todos los Jugadores",
+        ])
+        st.info(f"📍 Contexto activo: {breadcrumb}")
 
         st.divider()
         st.caption("Datos actualizados al 10/03/2026")
