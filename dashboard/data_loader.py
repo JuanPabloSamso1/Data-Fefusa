@@ -9,8 +9,35 @@ from pathlib import Path
 CSV_DIR = Path(__file__).parent.parent / "csv"
 
 
+def _csv_signature() -> tuple:
+    """
+    Genera una firma estable de los CSV consumidos por el dashboard.
+    Si cambia un archivo (mtime/tamaño), se invalida el caché.
+    """
+    tracked_files = [
+        "eventos.csv",
+        "partidos.csv",
+        "equipos.csv",
+        "torneos.csv",
+        "personas.csv",
+        "jugadores.csv",
+        "cuerpo_tecnico.csv",
+    ]
+
+    signature = []
+    for filename in tracked_files:
+        path = CSV_DIR / filename
+        if path.exists():
+            stat = path.stat()
+            signature.append((filename, stat.st_mtime_ns, stat.st_size))
+        else:
+            signature.append((filename, None, None))
+
+    return tuple(signature)
+
+
 @st.cache_data
-def load_data():
+def _load_data_cached(_signature: tuple):
     """
     Lee los CSVs y devuelve DataFrames con joins ya aplicados:
       - eventos_raw  : eventos + nombre equipo, persona, torneo, jornada
@@ -92,3 +119,8 @@ def load_data():
         partidos["temporada"] = partidos["temporada"].apply(lambda x: str(x).split(" - ")[-1] if pd.notna(x) else x)
 
     return eventos, partidos, personas, equipos, torneos
+
+
+def load_data():
+    """Wrapper no cacheado: invalida cache automáticamente cuando cambian los CSV."""
+    return _load_data_cached(_csv_signature())
