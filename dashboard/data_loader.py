@@ -84,12 +84,8 @@ def _load_data_cached(_signature: tuple):
         personas[["id", "nombre", "tipo_persona", "rol_ct"]].rename(columns={"id": "persona_id", "nombre": "persona"}),
         on="persona_id", how="left"
     )
-    # Alias legacy de dashboard + etiqueta de tipo de persona
-    eventos["persona_nombre_tipo"] = eventos.apply(
-        lambda r: f"{r['persona']} ({r['tipo_persona']})" if pd.notna(r.get("persona")) and pd.notna(r.get("tipo_persona")) else r.get("persona"),
-        axis=1
-    )
-    eventos["jugador"] = eventos.get("persona_nombre_tipo")
+    # Alias legacy: mantener columna `jugador` con el nombre limpio (sin sufijo de tipo)
+    eventos["jugador"] = eventos.get("persona")
 
     eventos = eventos.merge(
         partidos[["id", "torneo_id", "jornada"]].rename(columns={"id": "partido_id"}),
