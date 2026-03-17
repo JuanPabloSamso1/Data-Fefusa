@@ -9,8 +9,7 @@ import streamlit as st
 
 sys.path.append(str(Path(__file__).parent.parent))
 
-from dashboard import analytics, filters, views  # noqa: E402
-from dashboard.data_loader import get_last_data_update, load_data  # noqa: E402
+from dashboard import analytics, data_loader, filters, views  # noqa: E402
 from dashboard.styles import inject_css  # noqa: E402
 
 st.set_page_config(
@@ -22,8 +21,10 @@ st.set_page_config(
 
 inject_css()
 
-eventos_raw, partidos_raw, personas, equipos, torneos = load_data()
-last_update_label = analytics.format_last_updated(get_last_data_update())
+eventos_raw, partidos_raw, personas, equipos, torneos = data_loader.load_data()
+get_last_data_update = getattr(data_loader, "get_last_data_update", None)
+last_update_value = get_last_data_update() if callable(get_last_data_update) else None
+last_update_label = analytics.format_last_updated(last_update_value)
 
 sel = filters.render_sidebar(eventos_raw, personas, last_data_label=last_update_label)
 eventos = filters.apply_event_filters(eventos_raw, sel)
