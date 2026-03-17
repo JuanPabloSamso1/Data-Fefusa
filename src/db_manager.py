@@ -218,6 +218,9 @@ class MySQLManager:
                                 minuto, segundo, periodo)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
             ON DUPLICATE KEY UPDATE
+                partido_id = VALUES(partido_id),
+                equipo_id = VALUES(equipo_id),
+                persona_id = VALUES(persona_id),
                 tipo_evento = VALUES(tipo_evento),
                 minuto = VALUES(minuto),
                 segundo = VALUES(segundo),

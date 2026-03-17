@@ -46,6 +46,15 @@ def _sort_key_jornada(value):
     return float("inf")
 
 
+def _normalize_period(value) -> str:
+    raw = str(value).strip().upper()
+    if raw in {"1", "1T", "FIRST_HALF", "FIRSTHALF"}:
+        return "1T"
+    if raw in {"2", "2T", "SECOND_HALF", "SECONDHALF"}:
+        return "2T"
+    return raw
+
+
 def _style(fig, height: int | None = None):
     """Aplica el tema oscuro a cualquier figura Plotly."""
     kwargs = dict(
@@ -85,7 +94,7 @@ def goals_by_team(eventos: pd.DataFrame) -> None:
     fig.update_coloraxes(showscale=False, colorbar_title_text="")
     fig.update_layout(showlegend=False, title=None)
     fig.update_yaxes(title=" ")
-    st.plotly_chart(_style(fig), use_container_width=True)
+    st.plotly_chart(_style(fig), width="stretch")
 
 
 def events_by_type(eventos: pd.DataFrame) -> None:
@@ -108,7 +117,7 @@ def events_by_type(eventos: pd.DataFrame) -> None:
         showlegend=False, paper_bgcolor=_BG_PAPER, plot_bgcolor=_BG_PLOT,
         font=dict(family="Inter", color="#e6edf3"), margin=dict(t=20, b=20, l=20, r=20),
     )
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
 
 def goals_by_round(eventos: pd.DataFrame) -> None:
@@ -129,7 +138,7 @@ def goals_by_round(eventos: pd.DataFrame) -> None:
         labels={"jornada": "Jornada"}, template=_TEMPLATE, text="Goles",
     )
     fig.update_traces(textposition="outside", textfont_color="#e6edf3", marker_line_width=0)
-    st.plotly_chart(_style(fig), use_container_width=True)
+    st.plotly_chart(_style(fig), width="stretch")
 
 
 def top_scorers(eventos: pd.DataFrame, top_n: int = 10) -> None:
@@ -161,7 +170,7 @@ def top_scorers(eventos: pd.DataFrame, top_n: int = 10) -> None:
     fig.update_coloraxes(showscale=False)
     fig.update_yaxes(title=" ")
     fig.update_layout(yaxis=dict(autorange="reversed"))
-    st.plotly_chart(_style(fig, height=360), use_container_width=True)
+    st.plotly_chart(_style(fig, height=360), width="stretch")
 
 
 def team_performance(partidos: pd.DataFrame) -> None:
@@ -200,7 +209,7 @@ def team_performance(partidos: pd.DataFrame) -> None:
     fig.update_traces(marker_line_width=0)
     fig.update_layout(legend=dict(orientation="h", x=0, y=1.08, font_size=11))
     fig.update_xaxes(title=" ")
-    st.plotly_chart(_style(fig), use_container_width=True)
+    st.plotly_chart(_style(fig), width="stretch")
 
 
 
@@ -223,7 +232,7 @@ def goals_by_period(eventos: pd.DataFrame) -> None:
     )
     fig.update_traces(textposition="inside", textinfo="percent+label+value", textfont_size=12)
     fig.update_layout(showlegend=False, paper_bgcolor=_BG_PAPER, plot_bgcolor=_BG_PLOT)
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
 
 def match_timeline(
@@ -250,6 +259,10 @@ def match_timeline(
     data = data.sort_values(["minuto", "segundo", "id"], ascending=[True, True, True]).copy()
     data["jugador"] = _clean_text(data["jugador"], "Sin jugador")
     data["equipo"] = _clean_text(data["equipo"], "Sin equipo")
+    if "periodo" in data.columns:
+        data["periodo_norm"] = data["periodo"].apply(_normalize_period)
+    else:
+        data["periodo_norm"] = data["minuto"].apply(lambda value: "1T" if pd.notna(value) and float(value) < 20 else "2T")
 
     equipos_orden = data["equipo"].dropna().unique().tolist()
     if len(equipos_orden) < 2:
@@ -292,20 +305,47 @@ def match_timeline(
       .fef-match-feed-header {display:grid;grid-template-columns:1fr 120px 1fr;color:#e6edf3;font-weight:700;padding:4px 8px 10px 8px;}
       .fef-match-feed-row {display:grid;grid-template-columns:1fr 120px 1fr;align-items:center;gap:10px;padding:6px 8px;border-bottom:1px solid #1b222c;}
       .fef-match-feed-row:last-child {border-bottom:none;}
+      .fef-match-feed-divider {display:grid;grid-template-columns:1fr 120px 1fr;align-items:center;gap:10px;padding:14px 8px 12px 8px;}
+      .fef-divider-side {height:0;border-top:2px solid #36506b;opacity:0.95;}
+      .fef-divider-center {position:relative;height:34px;display:flex;justify-content:center;align-items:center;}
+      .fef-divider-center::before {content:"";position:absolute;left:50%;top:-10px;bottom:-10px;width:4px;border-radius:999px;background:linear-gradient(180deg,#4c7cb6 0%,#7bb6ff 100%);transform:translateX(-50%);}
+      .fef-divider-pill {position:relative;z-index:2;background:#0f1d2b;border:1px solid #4c7cb6;border-radius:999px;padding:4px 12px;color:#d2e6ff;font-weight:800;font-size:0.72rem;letter-spacing:0.08em;text-transform:uppercase;}
       .fef-team-left, .fef-team-right {font-size:0.9rem;line-height:1.2;display:flex;align-items:center;gap:8px;min-height:24px;}
       .fef-team-left {justify-content:flex-end;text-align:right;}
       .fef-team-right {justify-content:flex-start;text-align:left;}
       .fef-event-icon {font-size:0.95rem;}
-      .fef-event-meta {display:flex;flex-direction:column;}
+      .fef-event-meta {display:flex;flex-direction:column;min-width:0;}
       .fef-event-player {color:#e6edf3;font-weight:600;}
       .fef-event-type {color:#8b949e;font-size:0.75rem;}
       .fef-center-col {position:relative;height:100%;display:flex;justify-content:center;align-items:center;}
       .fef-center-col::before {content:"";position:absolute;left:50%;top:-14px;bottom:-14px;width:2px;background:#30363d;transform:translateX(-50%);} 
       .fef-minute-pill {position:relative;z-index:2;background:#161b22;border:1px solid #30363d;border-radius:999px;padding:2px 8px;color:#e6edf3;font-weight:700;font-size:0.8rem;min-width:46px;text-align:center;}
+      @media (max-width: 768px) {
+        .fef-match-feed {padding:8px 4px 6px 4px;}
+        .fef-match-feed-header {grid-template-columns:1fr 82px 1fr;padding:2px 4px 8px 4px;font-size:0.74rem;}
+        .fef-match-feed-row {grid-template-columns:1fr 82px 1fr;gap:6px;padding:6px 4px;}
+        .fef-match-feed-divider {grid-template-columns:1fr 82px 1fr;gap:6px;padding:10px 4px;}
+        .fef-team-left, .fef-team-right {font-size:0.78rem;gap:6px;}
+        .fef-event-player {font-size:0.78rem;word-break:break-word;}
+        .fef-event-type {font-size:0.67rem;}
+        .fef-minute-pill {min-width:40px;padding:2px 6px;font-size:0.72rem;}
+        .fef-divider-pill {font-size:0.66rem;padding:3px 8px;}
+      }
+      @media (max-width: 480px) {
+        .fef-match-feed-header {grid-template-columns:1fr 68px 1fr;}
+        .fef-match-feed-row {grid-template-columns:1fr 68px 1fr;}
+        .fef-match-feed-divider {grid-template-columns:1fr 68px 1fr;}
+        .fef-team-left, .fef-team-right {font-size:0.72rem;}
+        .fef-event-player {font-size:0.73rem;}
+        .fef-event-type {font-size:0.63rem;}
+        .fef-divider-pill {font-size:0.62rem;}
+      }
     </style>
     """
 
     rows_html = []
+    saw_first_half = False
+    inserted_halftime_divider = False
     for _, ev in data.iterrows():
         ev_type = str(ev["tipo_evento"])
         player = str(ev["jugador"])
@@ -313,6 +353,19 @@ def match_timeline(
         equipo = str(ev["equipo"])
         icono = str(ev["icono"])
         color = str(ev["ev_color"])
+        period = str(ev.get("periodo_norm", ""))
+
+        if period == "1T":
+            saw_first_half = True
+        elif period == "2T" and saw_first_half and not inserted_halftime_divider:
+            rows_html.append(
+                '<div class="fef-match-feed-divider">'
+                '<div class="fef-divider-side"></div>'
+                '<div class="fef-divider-center"><span class="fef-divider-pill">Entretiempo</span></div>'
+                '<div class="fef-divider-side"></div>'
+                '</div>'
+            )
+            inserted_halftime_divider = True
 
         event_html = (
             f'<span class="fef-event-icon" style="color:{color}">{icono}</span>'
@@ -389,7 +442,7 @@ def fouls_scatter(eventos: pd.DataFrame, partidos: pd.DataFrame) -> None:
     # Línea diagonal x=y para identificar balance entre cometidas y recibidas
     max_val = max(df["Cometidas"].max(), df["Recibidas"].max())
     fig.add_shape(type="line", x0=0, y0=0, x1=max_val, y1=max_val, line=dict(color="#8b949e", dash="dash"))
-    st.plotly_chart(_style(fig), use_container_width=True)
+    st.plotly_chart(_style(fig), width="stretch")
 
 
 def disciplinary_timeline(eventos: pd.DataFrame) -> None:
@@ -412,7 +465,7 @@ def disciplinary_timeline(eventos: pd.DataFrame) -> None:
         labels={"Tramo": "Minuto de Partido", "tipo_evento": "Tarjeta"}
     )
     fig.update_traces(marker_line_width=0)
-    st.plotly_chart(_style(fig), use_container_width=True)
+    st.plotly_chart(_style(fig), width="stretch")
 
 
 def goals_conceded(eventos: pd.DataFrame, partidos: pd.DataFrame) -> None:
@@ -453,7 +506,7 @@ def goals_conceded(eventos: pd.DataFrame, partidos: pd.DataFrame) -> None:
     fig.update_traces(textposition="outside", marker_line_width=0)
     fig.update_coloraxes(showscale=False)
     fig.update_yaxes(title=" ")
-    st.plotly_chart(_style(fig), use_container_width=True)
+    st.plotly_chart(_style(fig), width="stretch")
 
 
 def top_undisciplined(eventos: pd.DataFrame) -> None:
@@ -481,7 +534,7 @@ def top_undisciplined(eventos: pd.DataFrame) -> None:
     fig.update_coloraxes(showscale=False)
     fig.update_yaxes(title=" ")
     fig.update_layout(yaxis=dict(autorange="reversed"))
-    st.plotly_chart(_style(fig, height=360), use_container_width=True)
+    st.plotly_chart(_style(fig, height=360), width="stretch")
 
 
 def efficiency_vs_discipline(eventos: pd.DataFrame, partidos: pd.DataFrame) -> None:
@@ -538,7 +591,7 @@ def efficiency_vs_discipline(eventos: pd.DataFrame, partidos: pd.DataFrame) -> N
         fig.add_vline(x=mean_x, line_width=1, line_dash="dash", line_color="#8b949e", annotation_text="Media Goles")
         fig.add_hline(y=mean_y, line_width=1, line_dash="dash", line_color="#8b949e", annotation_text="Media Disc.")
         
-    st.plotly_chart(_style(fig), use_container_width=True)
+    st.plotly_chart(_style(fig), width="stretch")
 
 
 def top_scorers_timeline(eventos: pd.DataFrame, top_n: int = 5) -> None:
@@ -587,7 +640,7 @@ def top_scorers_timeline(eventos: pd.DataFrame, top_n: int = 5) -> None:
     # We move the legend so it doesn't overlap lines/titles if the plot gets crowded 
     # and we ensure text isn't placed on the chart if text is not strictly needed.
     fig.update_layout(legend=dict(orientation="h", x=0, y=1.15, font_size=11), margin=dict(t=60))
-    st.plotly_chart(_style(fig), use_container_width=True)
+    st.plotly_chart(_style(fig), width="stretch")
 
 
 
@@ -641,7 +694,7 @@ def tiros_castigo_bar(eventos: pd.DataFrame, partidos: pd.DataFrame) -> None:
     fig.update_layout(legend=dict(orientation="h", x=0, y=1.08, font_size=11))
     fig.update_xaxes(title="Tiros Castigo", dtick=1)
     fig.update_yaxes(title=" ")
-    st.plotly_chart(_style(fig, height=max(300, len(df_grouped["equipo"].unique()) * 30)), use_container_width=True)
+    st.plotly_chart(_style(fig, height=max(300, len(df_grouped["equipo"].unique()) * 30)), width="stretch")
 
 def tiros_castigo_scatter(eventos: pd.DataFrame) -> None:
     st.markdown('<div class="section-title">🎯 Faltas vs Tiros Castigos Cometidos</div>', unsafe_allow_html=True)
@@ -674,5 +727,5 @@ def tiros_castigo_scatter(eventos: pd.DataFrame) -> None:
     fig.update_layout(showlegend=False, title=None)
     fig.update_yaxes(dtick=1)
     
-    st.plotly_chart(_style(fig), use_container_width=True)
+    st.plotly_chart(_style(fig), width="stretch")
 

@@ -1,8 +1,12 @@
 """
 Sidebar con selectboxes de filtrado y funciones para aplicarlos.
 """
+from __future__ import annotations
+
 import streamlit as st
 import pandas as pd
+
+DASHBOARD_VIEWS = ["liga", "equipo", "jugador", "partido", "disciplina", "comparativa"]
 
 
 def _default_index(options: list, preferred: str) -> int:
@@ -23,9 +27,13 @@ def _reset_sidebar_filters() -> None:
     st.session_state["f_equipo"] = "Todos"
     st.session_state["f_tipo"] = "Todos"
     st.session_state["f_jugador"] = "Todos"
+    st.session_state["vista_activa"] = "liga"
+    st.session_state["partido_id"] = None
+    st.session_state["jugador_a"] = None
+    st.session_state["jugador_b"] = None
 
 
-def render_sidebar(eventos_raw: pd.DataFrame, personas_raw: pd.DataFrame) -> dict:
+def render_sidebar(eventos_raw: pd.DataFrame, personas_raw: pd.DataFrame, last_data_label: str | None = None) -> dict:
     """
     Muestra los controles de filtro en la sidebar y retorna un dict con las selecciones.
     """
@@ -38,7 +46,7 @@ def render_sidebar(eventos_raw: pd.DataFrame, personas_raw: pd.DataFrame) -> dic
         st.session_state["_categorias_opts"] = categorias_opts
         st.session_state["_temporadas_opts"] = temporadas_opts
 
-        if st.button("🧹 Limpiar filtros", use_container_width=True):
+        if st.button("🧹 Limpiar filtros", width="stretch"):
             _reset_sidebar_filters()
             st.rerun()
 
@@ -109,7 +117,13 @@ def render_sidebar(eventos_raw: pd.DataFrame, personas_raw: pd.DataFrame) -> dic
         st.info(f"📍 Contexto activo: {breadcrumb}")
 
         st.divider()
-        st.caption("Datos actualizados al 10/03/2026")
+        if last_data_label:
+            st.caption(f"Datos actualizados al {last_data_label}")
+
+    _safe_state_value("vista_activa", DASHBOARD_VIEWS, "liga")
+    st.session_state.setdefault("partido_id", None)
+    st.session_state.setdefault("jugador_a", None)
+    st.session_state.setdefault("jugador_b", None)
 
     return {
         "categoria": sel_categoria,
@@ -118,26 +132,41 @@ def render_sidebar(eventos_raw: pd.DataFrame, personas_raw: pd.DataFrame) -> dic
         "equipo":  sel_equipo,
         "tipo":    sel_tipo,
         "jugador": sel_jugador,
+        "vista_activa": st.session_state.get("vista_activa", "liga"),
+        "partido_id": st.session_state.get("partido_id"),
+        "jugador_a": st.session_state.get("jugador_a"),
+        "jugador_b": st.session_state.get("jugador_b"),
     }
 
 
-def apply_event_filters(df: pd.DataFrame, sel: dict) -> pd.DataFrame:
+def apply_event_filters(df: pd.DataFrame, sel: dict, ignore_keys: set[str] | None = None) -> pd.DataFrame:
     """Aplica todos los filtros al DataFrame de eventos."""
-    if sel["categoria"] != "Todas":  df = df[df["categoria"]     == sel["categoria"]]
-    if sel["temporada"] != "Todas":  df = df[df["temporada"]     == sel["temporada"]]
-    if sel["jornada"]   != "Todas":  df = df[df["jornada"]       == sel["jornada"]]
-    if sel["equipo"]    != "Todos":  df = df[df["equipo"]        == sel["equipo"]]
-    if sel["tipo"]      != "Todos":  df = df[df["tipo_evento"]   == sel["tipo"]]
-    if sel["jugador"]   != "Todos":  df = df[df["jugador"]       == sel["jugador"]]
+    ignore_keys = ignore_keys or set()
+    if "categoria" not in ignore_keys and sel["categoria"] != "Todas":
+        df = df[df["categoria"] == sel["categoria"]]
+    if "temporada" not in ignore_keys and sel["temporada"] != "Todas":
+        df = df[df["temporada"] == sel["temporada"]]
+    if "jornada" not in ignore_keys and sel["jornada"] != "Todas":
+        df = df[df["jornada"] == sel["jornada"]]
+    if "equipo" not in ignore_keys and sel["equipo"] != "Todos":
+        df = df[df["equipo"] == sel["equipo"]]
+    if "tipo" not in ignore_keys and sel["tipo"] != "Todos":
+        df = df[df["tipo_evento"] == sel["tipo"]]
+    if "jugador" not in ignore_keys and sel["jugador"] != "Todos":
+        df = df[df["jugador"] == sel["jugador"]]
     return df
 
 
-def apply_match_filters(df: pd.DataFrame, sel: dict) -> pd.DataFrame:
+def apply_match_filters(df: pd.DataFrame, sel: dict, ignore_keys: set[str] | None = None) -> pd.DataFrame:
     """Aplica filtros de torneo, jornada y equipo al DataFrame de partidos."""
-    if sel["categoria"] != "Todas":  df = df[df["categoria"] == sel["categoria"]]
-    if sel["temporada"] != "Todas":  df = df[df["temporada"] == sel["temporada"]]
-    if sel["jornada"]   != "Todas":  df = df[df["jornada"]   == sel["jornada"]]
-    if sel["equipo"]    != "Todos":
+    ignore_keys = ignore_keys or set()
+    if "categoria" not in ignore_keys and sel["categoria"] != "Todas":
+        df = df[df["categoria"] == sel["categoria"]]
+    if "temporada" not in ignore_keys and sel["temporada"] != "Todas":
+        df = df[df["temporada"] == sel["temporada"]]
+    if "jornada" not in ignore_keys and sel["jornada"] != "Todas":
+        df = df[df["jornada"] == sel["jornada"]]
+    if "equipo" not in ignore_keys and sel["equipo"] != "Todos":
         df = df[
             (df["equipo_local"] == sel["equipo"]) |
             (df["equipo_visitante"] == sel["equipo"])

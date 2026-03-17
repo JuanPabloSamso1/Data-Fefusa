@@ -7,12 +7,12 @@ import pandas as pd
 
 def _render_compact_table(df: pd.DataFrame, compact: bool, top_n: int, **kwargs) -> None:
     if not compact or len(df) <= top_n:
-        st.dataframe(df, use_container_width=True, **kwargs)
+        st.dataframe(df, width="stretch", **kwargs)
         return
 
-    st.dataframe(df.head(top_n), use_container_width=True, **kwargs)
+    st.dataframe(df.head(top_n), width="stretch", **kwargs)
     with st.expander(f"Ver tabla completa ({len(df)} filas)"):
-        st.dataframe(df, use_container_width=True, **kwargs)
+        st.dataframe(df, width="stretch", **kwargs)
 
 
 # ─── Tabla disciplinaria ──────────────────────────────────────────────────────

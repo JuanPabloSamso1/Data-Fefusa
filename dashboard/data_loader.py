@@ -2,6 +2,9 @@
 Carga y join de los CSV en DataFrames enriquecidos.
 Se usa @st.cache_data para no re-leer en cada interacción.
 """
+from __future__ import annotations
+
+from datetime import datetime
 import streamlit as st
 import pandas as pd
 from pathlib import Path
@@ -20,8 +23,6 @@ def _csv_signature() -> tuple:
         "equipos.csv",
         "torneos.csv",
         "personas.csv",
-        "jugadores.csv",
-        "cuerpo_tecnico.csv",
     ]
 
     signature = []
@@ -36,6 +37,54 @@ def _csv_signature() -> tuple:
     return tuple(signature)
 
 
+def get_last_data_update() -> datetime | None:
+    """Retorna la última fecha de modificación entre los CSV consumidos."""
+    mtimes = [mtime_ns for _, mtime_ns, _ in _csv_signature() if mtime_ns]
+    if not mtimes:
+        return None
+    return datetime.fromtimestamp(max(mtimes) / 1_000_000_000)
+
+
+def _normalize_events_frame(eventos: pd.DataFrame) -> pd.DataFrame:
+    """
+    Unifica claves legacy de persona/jugador y colapsa eventos duplicados por `id`.
+    Algunos CSVs repiten el mismo evento dos veces: una fila con `jugador_id` y otra
+    con `persona_id`. El dashboard debe tratarlos como un unico evento.
+    """
+    if eventos.empty:
+        return eventos.copy()
+
+    out = eventos.copy()
+
+    for col in ["id", "partido_id", "equipo_id", "jugador_id", "persona_id", "tipo_evento", "periodo"]:
+        if col in out.columns:
+            out[col] = out[col].replace("", pd.NA)
+
+    if "persona_id" not in out.columns and "jugador_id" in out.columns:
+        out = out.rename(columns={"jugador_id": "persona_id"})
+    elif "jugador_id" in out.columns:
+        if "persona_id" not in out.columns:
+            out["persona_id"] = out["jugador_id"]
+        else:
+            out["persona_id"] = out["persona_id"].fillna(out["jugador_id"])
+        out["jugador_id"] = out["jugador_id"].fillna(out["persona_id"])
+
+    helper_cols: list[str] = []
+    if "id" in out.columns:
+        if "persona_id" in out.columns:
+            out["_persona_rank"] = out["persona_id"].notna().astype(int)
+            helper_cols.append("_persona_rank")
+        if "jugador_id" in out.columns:
+            out["_jugador_rank"] = out["jugador_id"].notna().astype(int)
+            helper_cols.append("_jugador_rank")
+
+        if helper_cols:
+            out = out.sort_values(["id", *helper_cols], ascending=[True, *([False] * len(helper_cols))])
+        out = out.drop_duplicates(subset=["id"], keep="first")
+
+    return out.drop(columns=helper_cols, errors="ignore")
+
+
 @st.cache_data
 def _load_data_cached(_signature: tuple):
     """
@@ -46,30 +95,16 @@ def _load_data_cached(_signature: tuple):
 
     Mantiene alias legacy `jugador` para no romper componentes existentes.
     """
-    eventos = pd.read_csv(CSV_DIR / "eventos.csv")
+    eventos = _normalize_events_frame(pd.read_csv(CSV_DIR / "eventos.csv"))
     partidos = pd.read_csv(CSV_DIR / "partidos.csv")
     equipos = pd.read_csv(CSV_DIR / "equipos.csv")
     torneos = pd.read_csv(CSV_DIR / "torneos.csv")
 
     personas_path = CSV_DIR / "personas.csv"
     if personas_path.exists():
-        personas = pd.read_csv(personas_path)
+        personas = pd.read_csv(personas_path).drop_duplicates(subset=["id"], keep="last")
     else:
-        # Backward compatibility: construir personas desde jugadores/cuerpo_tecnico
-        jugadores = pd.read_csv(CSV_DIR / "jugadores.csv") if (CSV_DIR / "jugadores.csv").exists() else pd.DataFrame(columns=["id", "equipo_id", "nombre"])
-        staff = pd.read_csv(CSV_DIR / "cuerpo_tecnico.csv") if (CSV_DIR / "cuerpo_tecnico.csv").exists() else pd.DataFrame(columns=["id", "equipo_id", "nombre", "rol"])
-
-        jugadores = jugadores.copy()
-        jugadores["tipo_persona"] = "JUGADOR"
-        jugadores["rol_ct"] = None
-
-        staff = staff.rename(columns={"rol": "rol_ct"}).copy()
-        staff["tipo_persona"] = "CT"
-
-        personas = pd.concat([
-            jugadores[["id", "equipo_id", "nombre", "tipo_persona", "rol_ct"]],
-            staff[["id", "equipo_id", "nombre", "tipo_persona", "rol_ct"]],
-        ], ignore_index=True).drop_duplicates(subset=["id"], keep="last")
+        personas = pd.DataFrame(columns=["id", "equipo_id", "nombre", "tipo_persona", "rol_ct"])
 
     # Normalizar columna FK de eventos: persona_id (nuevo) o jugador_id (legacy)
     if "persona_id" not in eventos.columns and "jugador_id" in eventos.columns:

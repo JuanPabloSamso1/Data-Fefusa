@@ -1,167 +1,156 @@
 """
 Punto de entrada principal para el pipeline ETL de Sports Analytics (Futsal).
 """
-import os
 import logging
+import os
 import sys
-import pandas as pd
 from pathlib import Path
+
+import pandas as pd
 from dotenv import load_dotenv
 
-from src.scraper import ScorefyScraper
 from src.processor import DataProcessor
-from src.db_manager import MySQLManager
+from src.scraper import ScorefyScraper
 
-# Configuración de rutas
 CSV_DIR = Path("csv")
 CSV_DIR.mkdir(exist_ok=True)
 
-# Configuración básica de logging
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-    handlers=[
-        logging.StreamHandler(sys.stdout)
-    ]
+    handlers=[logging.StreamHandler(sys.stdout)],
 )
 
 logger = logging.getLogger(__name__)
 
+
+def append_deduped_csv(df: pd.DataFrame, filename: str, subset_id: str) -> None:
+    """
+    Escribe o actualiza un CSV deduplicando siempre por el identificador
+    principal, incluso en la primera corrida y con tipos heterogéneos.
+    """
+    if df.empty:
+        return
+
+    filepath = CSV_DIR / filename
+    incoming_df = df.copy()
+
+    if subset_id in incoming_df.columns:
+        incoming_df[subset_id] = incoming_df[subset_id].astype(str)
+
+    frames = [incoming_df]
+    if filepath.exists():
+        dtype_map = {subset_id: str} if subset_id in incoming_df.columns else None
+        existing_df = pd.read_csv(filepath, dtype=dtype_map)
+        if subset_id in existing_df.columns:
+            existing_df[subset_id] = existing_df[subset_id].astype(str)
+        frames.insert(0, existing_df)
+
+    combined = pd.concat(frames, ignore_index=True)
+    if subset_id in combined.columns:
+        combined = combined.drop_duplicates(subset=[subset_id], keep="last")
+
+    combined.to_csv(filepath, index=False)
+
+
 def main() -> None:
     logger.info("Iniciando pipeline ETL de Futsal...")
-    
-    # Cargar variables de entorno
+
     load_dotenv()
-    
-    # URL del torneo a procesar
-    # Debe configurarse en el entorno o .env, con un valor por defecto para evitar roturas
-    url_torneo = os.getenv("TORNEO_URL", "https://scorefy.app/futsal/mendoza/fefusa-mendoza/FFM-P-M-FSP-A-2026/results")
-    
-    # Instanciar componentes
+
+    url_torneo = os.getenv(
+        "TORNEO_URL",
+        "https://scorefy.app/futsal/mendoza/fefusa-mendoza/FFM-P-M-FSP-A-2026/results",
+    )
+
     scraper = ScorefyScraper()
     processor = DataProcessor()
-    db_manager = MySQLManager()
-    
     try:
-        # --- 1. EXTRACCIÓN GLOBAL ---
         partidos_fixture = scraper.get_fixture_urls(url_torneo)
-        
         if not partidos_fixture:
             logger.warning("No se encontraron partidos finalizados para procesar.")
             return
 
         logger.info(f"Se procesarán {len(partidos_fixture)} partidos.")
-        
-        # --- 2. ITERACIÓN POR PARTIDO ---
+
         for partido_idx, partido_info in enumerate(partidos_fixture, 1):
             match_id = partido_info.get("id")
             match_url = partido_info.get("url")
-            
-            logger.info(f"")
+
+            logger.info("")
             logger.info(f"--- Procesando Partido {partido_idx}/{len(partidos_fixture)}: ID {match_id} ---")
-            
+
             try:
-                # a. Extracción pormenorizada del partido
-                match_data = scraper.get_match_data(match_url)
-                
-                # Desempaquetar datos en crudo
+                match_data = scraper.get_match_data(match_url, fallback_data=partido_info.get("data"))
+
                 raw_events = match_data.get("initialFanLog", [])
                 raw_players = match_data.get("convocadas", [])
-                # match_metadata = match_data.get("matchFull", {})
-                
-                # b. Transformación (Procesamiento en memoria usando Pandas)
                 match_metadata = match_data.get("matchFull", {})
+
                 df_torneos, df_partidos = processor.process_metadata(match_metadata, match_id)
-                
+                if df_partidos.empty:
+                    logger.warning(
+                        f"Se omite el partido {match_id} por metadata incompleta. "
+                        "No se insertan eventos ni personas para evitar inconsistencias."
+                    )
+                    continue
+
                 df_eventos = processor.process_events(raw_events, match_id)
                 df_jugadores = processor.process_players(raw_players)
                 df_staff = processor.process_staff(raw_players)
-                
-                # Derivar Equipos desde matchFull (tiene los nombres reales del HTML)
+
                 equipos_rows = []
                 local_id = match_metadata.get("equipo_local_id")
                 local_nombre = match_metadata.get("equipo_local_nombre") or f"Equipo ID: {local_id}"
                 visitante_id = match_metadata.get("equipo_visitante_id")
                 visitante_nombre = match_metadata.get("equipo_visitante_nombre") or f"Equipo ID: {visitante_id}"
-                
+
                 if local_id:
                     equipos_rows.append({"id": str(local_id), "nombre": local_nombre})
                 if visitante_id:
                     equipos_rows.append({"id": str(visitante_id), "nombre": visitante_nombre})
-                
-                df_equipos = pd.DataFrame(equipos_rows).drop_duplicates(subset=['id'])
-                
-                # c. Carga a Base de Datos (Load)
-                
-                # 0. UPSERT Torneos
-                if not df_torneos.empty:
-                    db_manager.upsert_torneos(df_torneos)
-                    
-                # 1. UPSERT Equipos
-                if not df_equipos.empty:
-                    db_manager.upsert_equipos(df_equipos)
-                    
-                # 2. UPSERT Partidos
-                if not df_partidos.empty:
-                    db_manager.upsert_partidos(df_partidos)
-                    
-                # 3. UPSERT Personas (jugadores + CT)
-                df_personas = pd.DataFrame(columns=['id', 'equipo_id', 'nombre', 'tipo_persona', 'rol_ct'])
+
+                df_equipos = pd.DataFrame(equipos_rows).drop_duplicates(subset=["id"]) if equipos_rows else pd.DataFrame()
+
+                df_personas = pd.DataFrame(columns=["id", "equipo_id", "nombre", "tipo_persona", "rol_ct"])
                 if not df_jugadores.empty:
                     tmp_j = df_jugadores.copy()
-                    tmp_j['tipo_persona'] = 'JUGADOR'
-                    tmp_j['rol_ct'] = None
-                    df_personas = pd.concat([df_personas, tmp_j[['id', 'equipo_id', 'nombre', 'tipo_persona', 'rol_ct']]], ignore_index=True)
+                    tmp_j["tipo_persona"] = "JUGADOR"
+                    tmp_j["rol_ct"] = None
+                    df_personas = pd.concat(
+                        [df_personas, tmp_j[["id", "equipo_id", "nombre", "tipo_persona", "rol_ct"]]],
+                        ignore_index=True,
+                    )
 
                 if not df_staff.empty:
-                    tmp_ct = df_staff.rename(columns={'rol': 'rol_ct'}).copy()
-                    tmp_ct['tipo_persona'] = 'CT'
-                    df_personas = pd.concat([df_personas, tmp_ct[['id', 'equipo_id', 'nombre', 'tipo_persona', 'rol_ct']]], ignore_index=True)
+                    tmp_ct = df_staff.rename(columns={"rol": "rol_ct"}).copy()
+                    tmp_ct["tipo_persona"] = "CT"
+                    df_personas = pd.concat(
+                        [df_personas, tmp_ct[["id", "equipo_id", "nombre", "tipo_persona", "rol_ct"]]],
+                        ignore_index=True,
+                    )
 
                 if not df_personas.empty:
-                    df_personas.drop_duplicates(subset=['id'], keep='last', inplace=True)
-                    db_manager.upsert_personas(df_personas)
-                    
-                # 5. Insertar Eventos (Con Batch Processing interno y atómico)
-                if not df_eventos.empty:
-                    db_manager.insert_events(df_eventos, batch_size=500)
-                    
-                # d. Actualizar CSVs Locales Incrementalmente
-                def _append_to_csv(df: pd.DataFrame, filename: str, subset_id: str):
-                    if df.empty: return
-                    filepath = CSV_DIR / filename
-                    if filepath.exists():
-                        existing_df = pd.read_csv(filepath)
-                        # Concatenar y eliminar duplicados basándose en el ID principal
-                        combined = pd.concat([existing_df, df]).drop_duplicates(subset=[subset_id], keep="last")
-                        combined.to_csv(filepath, index=False)
-                    else:
-                        df.to_csv(filepath, index=False)
+                    df_personas.drop_duplicates(subset=["id"], keep="last", inplace=True)
 
-                _append_to_csv(df_torneos, "torneos.csv", "id")
-                _append_to_csv(df_equipos, "equipos.csv", "id")
-                _append_to_csv(df_partidos, "partidos.csv", "id")
-                _append_to_csv(df_jugadores, "jugadores.csv", "id")
-                _append_to_csv(df_staff, "cuerpo_tecnico.csv", "id")
+                append_deduped_csv(df_torneos, "torneos.csv", "id")
+                append_deduped_csv(df_equipos, "equipos.csv", "id")
+                append_deduped_csv(df_partidos, "partidos.csv", "id")
                 if not df_personas.empty:
-                    _append_to_csv(df_personas, "personas.csv", "id")
-                _append_to_csv(df_eventos, "eventos.csv", "id")
-                
-                logger.info(f"Partido {match_id} procesado, guardado en DB y CSVs actualizados.")
-                
+                    append_deduped_csv(df_personas, "personas.csv", "id")
+                append_deduped_csv(df_eventos, "eventos.csv", "id")
+
+                logger.info(f"Partido {match_id} procesado y CSVs actualizados.")
+
             except Exception as e:
-                # MANEJO ROBUSTO DE EXCEPCIONES: Si falla un partido, se loguea y continúa con el sgt.
                 logger.error(f"Error procesando el partido {match_id} ({match_url}): {e}", exc_info=False)
-                # Para un flujo de despliegue, omitimos exc_info=True para no inundar los logs. 
-                # Si falla, simplemente continúa aislando el error.
                 continue
-                
+
     except Exception as e:
         logger.critical(f"Falla crítica en el orquestador principal del pipeline ETL: {e}", exc_info=True)
     finally:
-        # Cierre ordenado de conexiones
-        db_manager.close()
         logger.info("Pipeline ETL finalizado.")
+
 
 if __name__ == "__main__":
     main()

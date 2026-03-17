@@ -145,7 +145,19 @@ class DataProcessor:
             })
 
         df_eventos = pd.DataFrame(event_rows)
-        logger.info(f"Procesados {len(df_eventos)} eventos para el partido {match_id}.")
+        if not df_eventos.empty:
+            df_eventos["_row_order"] = range(len(df_eventos))
+            df_eventos["_completeness"] = df_eventos[["equipo_id", "persona_id"]].notna().sum(axis=1)
+            df_eventos = (
+                df_eventos
+                .sort_values(["id", "_completeness", "_row_order"])
+                .drop_duplicates(subset=["id"], keep="last")
+                .sort_values("_row_order")
+                .drop(columns=["_row_order", "_completeness"])
+                .reset_index(drop=True)
+            )
+
+        logger.info(f"Procesados {len(df_eventos)} eventos únicos para el partido {match_id}.")
         return df_eventos
 
     def process_players(self, raw_players: List[Dict[str, Any]]) -> pd.DataFrame:
@@ -263,10 +275,26 @@ class DataProcessor:
                 ])
             )
             
-        # 1. Torneos
         torneo_id = match_metadata.get('torneo_id', 'DESCONOCIDO')
         torneo_nombre = match_metadata.get('torneo_nombre', 'Torneo Desconocido')
         temporada = match_metadata.get('temporada', 'Desconocida')
+
+        fecha_raw = match_metadata.get('fecha')
+        equipo_local_id = match_metadata.get('equipo_local_id')
+        equipo_visitante_id = match_metadata.get('equipo_visitante_id')
+
+        if not fecha_raw or not equipo_local_id or not equipo_visitante_id:
+            logger.warning(
+                f"Metadata incompleta para el partido {match_id}. "
+                "Se omite la carga del partido para evitar datos corruptos."
+            )
+            return (
+                pd.DataFrame(columns=['id', 'nombre', 'temporada', 'pais']),
+                pd.DataFrame(columns=[
+                    'id', 'torneo_id', 'equipo_local_id', 'equipo_visitante_id',
+                    'fecha', 'jornada', 'goles_local', 'goles_visitante'
+                ])
+            )
         
         df_torneos = pd.DataFrame([{
             'id': str(torneo_id),
@@ -275,20 +303,14 @@ class DataProcessor:
             'pais': 'Argentina' # Defaulting as this scraper is for Mendoza
         }])
         
-        # 2. Partidos
         # Convertimos la fecha JS ($D2024-...) a algo parseable por pandas/mysql
-        fecha_raw = match_metadata.get('fecha')
-        if fecha_raw:
-            # Reemplazar la 'T' y cortar los milisegundos 'Z' para compatibilidad MySQL
-            fecha_str = fecha_raw.replace('T', ' ')[:19]
-        else:
-            fecha_str = pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')
+        fecha_str = str(fecha_raw).replace('$D', '').replace('T', ' ')[:19]
             
         df_partidos = pd.DataFrame([{
             'id': str(match_id),
             'torneo_id': str(torneo_id),
-            'equipo_local_id': str(match_metadata.get('equipo_local_id')) if match_metadata.get('equipo_local_id') else None,
-            'equipo_visitante_id': str(match_metadata.get('equipo_visitante_id')) if match_metadata.get('equipo_visitante_id') else None,
+            'equipo_local_id': str(equipo_local_id),
+            'equipo_visitante_id': str(equipo_visitante_id),
             'fecha': fecha_str,
             'jornada': match_metadata.get('jornada'),
             'goles_local': match_metadata.get('goles_local', 0),
