@@ -120,6 +120,7 @@ def inject_css() -> None:
         padding: 0.6rem;
         border: 1px solid rgba(120, 184, 255, 0.12);
         border-radius: 16px;
+        margin-top: 0.55rem;
         margin-bottom: 1rem;
     }
 
