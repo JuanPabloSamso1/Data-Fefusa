@@ -207,6 +207,11 @@ def inject_css() -> None:
         min-height: 126px;
     }
 
+    .metric-cards-row-anchor {
+        clear: both;
+        margin-top: 0.55rem;
+    }
+
     .metric-kicker {
         color: var(--text-3);
         font-size: 0.75rem;
