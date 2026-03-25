@@ -1,4 +1,11 @@
 id,torneo_id,equipo_local_id,equipo_visitante_id,fecha,jornada,goles_local,goles_visitante
+cmlmgwve1001op4zcjdxcfrl5,FFM-P-M-FSP-A-2026,adrithlvwtdhgcxm44467psde,clv9y14tc0002s5sdcij3kdes,2026-03-19 00:30:00,4,3,4
+cmlmgwve1001lp4zcbpq1tb5n,FFM-P-M-FSP-A-2026,iqsonebbiywvoxzr63562kwcg,tpuenmmsfepzkuvs52687qkrz,2026-03-21 00:00:00,4,6,4
+cmlmgwve1001mp4zcdbuypjw0,FFM-P-M-FSP-A-2026,wejbvnpjfddprayi56851nywm,buqhdbuybepnrwfj45861sfmv,2026-03-21 00:30:00,4,2,1
+cmlmgwve1001pp4zcmksnsi2b,FFM-P-M-FSP-A-2026,tythronuthqkvmdl94637zbol,niujlcyjulnsrfss48567ijaa,2026-03-21 00:30:00,4,2,6
+cmlmgwve1001qp4zciouvmvl4,FFM-P-M-FSP-A-2026,qcovjxoltlivasyy94560eqge,rvrkcfvivhratbxd30828eoll,2026-03-21 00:30:00,4,4,3
+cmlmgwve1001kp4zca216lsqu,FFM-P-M-FSP-A-2026,uuouhvydksjxykxe23230jxen,tziicpsffzkwooln63257wnaj,2026-03-21 01:15:00,4,2,4
+cmlmgwve1001np4zcof34w6sq,FFM-P-M-FSP-A-2026,jlmvlskhdofdgywx21537tyml,xiixkzqhypqkmtyr19648wlcf,2026-03-21 01:30:00,4,2,3
 cmlmgwve1001bp4zcgqt0or1t,FFM-P-M-FSP-A-2026,xxvykydpifsapfau72439crkk,qcovjxoltlivasyy94560eqge,2026-03-14 00:00:00,3,5,0
 cmlmgwve1001cp4zczof6wzua,FFM-P-M-FSP-A-2026,tziicpsffzkwooln63257wnaj,evgubysfaryqquxp91003epne,2026-03-14 00:30:00,3,8,0
 cmlmgwve1001hp4zcs9bk4tko,FFM-P-M-FSP-A-2026,niujlcyjulnsrfss48567ijaa,adrithlvwtdhgcxm44467psde,2026-03-14 01:30:00,3,2,1
@@ -12,9 +19,9 @@ cmlmgwve10016p4zcf2gzuuui,FFM-P-M-FSP-A-2026,uuouhvydksjxykxe23230jxen,buqhdbuyb
 cmlmgwve10017p4zclmc644bc,FFM-P-M-FSP-A-2026,iqsonebbiywvoxzr63562kwcg,xiixkzqhypqkmtyr19648wlcf,2026-03-10 00:00:00,2,1,5
 cmlmgwve1000zp4zcrfd0wo28,FFM-P-M-FSP-A-2026,xiixkzqhypqkmtyr19648wlcf,uuouhvydksjxykxe23230jxen,2026-02-28 00:00:00,1,4,0
 cmlmgwve10011p4zc58r8m82n,FFM-P-M-FSP-A-2026,niujlcyjulnsrfss48567ijaa,wejbvnpjfddprayi56851nywm,2026-02-28 00:00:00,1,1,2
-cmlmgwve1000vp4zci8z7r8z7,FFM-P-M-FSP-A-2026,xxvykydpifsapfau72439crkk,tythronuthqkvmdl94637zbol,2026-02-28 00:30:00,1,2,0
-cmlmgwve1000yp4zcrrjkblvv,FFM-P-M-FSP-A-2026,buqhdbuybepnrwfj45861sfmv,evgubysfaryqquxp91003epne,2026-02-28 00:30:00,1,7,4
-cmlmgwve1000wp4zcw7q8yowh,FFM-P-M-FSP-A-2026,tziicpsffzkwooln63257wnaj,rvrkcfvivhratbxd30828eoll,2026-02-28 00:30:00,1,2,1
 cmlmgwve10010p4zc1rxlyvav,FFM-P-M-FSP-A-2026,clv9y14tc0002s5sdcij3kdes,iqsonebbiywvoxzr63562kwcg,2026-02-28 00:30:00,1,1,5
-cmlmgwve1000xp4zc4h7xxheh,FFM-P-M-FSP-A-2026,qcovjxoltlivasyy94560eqge,tpuenmmsfepzkuvs52687qkrz,2026-02-28 00:30:00,1,1,3
+cmlmgwve1000yp4zcrrjkblvv,FFM-P-M-FSP-A-2026,buqhdbuybepnrwfj45861sfmv,evgubysfaryqquxp91003epne,2026-02-28 00:30:00,1,7,4
+cmlmgwve1000vp4zci8z7r8z7,FFM-P-M-FSP-A-2026,xxvykydpifsapfau72439crkk,tythronuthqkvmdl94637zbol,2026-02-28 00:30:00,1,2,0
 cmlmgwve10012p4zcskrr7o5j,FFM-P-M-FSP-A-2026,adrithlvwtdhgcxm44467psde,jlmvlskhdofdgywx21537tyml,2026-02-28 00:30:00,1,3,3
+cmlmgwve1000wp4zcw7q8yowh,FFM-P-M-FSP-A-2026,tziicpsffzkwooln63257wnaj,rvrkcfvivhratbxd30828eoll,2026-02-28 00:30:00,1,2,1
+cmlmgwve1000xp4zc4h7xxheh,FFM-P-M-FSP-A-2026,qcovjxoltlivasyy94560eqge,tpuenmmsfepzkuvs52687qkrz,2026-02-28 00:30:00,1,1,3
