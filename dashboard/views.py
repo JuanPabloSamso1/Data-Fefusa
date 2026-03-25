@@ -79,6 +79,7 @@ def _section(title: str, subtitle: str | None = None) -> None:
 
 
 def _metric_cards(cards: list[dict[str, str]]) -> None:
+    st.markdown('<div class="metric-cards-row-anchor"></div>', unsafe_allow_html=True)
     columns = st.columns(len(cards))
     for col, card in zip(columns, cards):
         note = f'<div class="metric-note">{card["note"]}</div>' if card.get("note") else ""

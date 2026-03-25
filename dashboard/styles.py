@@ -120,6 +120,7 @@ def inject_css() -> None:
         padding: 0.6rem;
         border: 1px solid rgba(120, 184, 255, 0.12);
         border-radius: 16px;
+        margin-top: 0.55rem;
         margin-bottom: 1rem;
     }
 
@@ -204,6 +205,11 @@ def inject_css() -> None:
         border-radius: 18px;
         padding: 18px 18px 16px;
         min-height: 126px;
+    }
+
+    .metric-cards-row-anchor {
+        clear: both;
+        margin-top: 0.55rem;
     }
 
     .metric-kicker {
