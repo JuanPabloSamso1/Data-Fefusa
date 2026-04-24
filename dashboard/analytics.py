@@ -676,6 +676,85 @@ def build_player_comparison(eventos: pd.DataFrame, jugador_a: str, jugador_b: st
     }
 
 
+def build_goals_by_team(eventos: pd.DataFrame) -> pd.DataFrame:
+    goles = eventos[eventos["tipo_evento"] == "Gol"] if "tipo_evento" in eventos.columns else eventos.iloc[:0]
+    if goles.empty:
+        return _empty(["equipo", "Goles"])
+    return (
+        goles.groupby("equipo", as_index=False).size()
+        .rename(columns={"size": "Goles"})
+        .sort_values("Goles", ascending=True)
+    )
+
+
+def build_events_by_type(eventos: pd.DataFrame) -> pd.DataFrame:
+    if eventos.empty or "tipo_evento" not in eventos.columns:
+        return _empty(["tipo_evento", "Cantidad"])
+    return (
+        eventos.groupby("tipo_evento", as_index=False).size()
+        .rename(columns={"size": "Cantidad"})
+        .sort_values("Cantidad", ascending=False)
+    )
+
+
+def build_goals_by_round(eventos: pd.DataFrame) -> pd.DataFrame:
+    goles = eventos[eventos["tipo_evento"] == "Gol"] if "tipo_evento" in eventos.columns else eventos.iloc[:0]
+    if goles.empty:
+        return _empty(["jornada", "Goles"])
+    df = (
+        goles.groupby("jornada", as_index=False).size()
+        .rename(columns={"size": "Goles"})
+    )
+    df["jornada"] = df["jornada"].astype(str)
+    return df.sort_values("jornada")
+
+
+def build_top_scorers(eventos: pd.DataFrame, top_n: int = 10) -> pd.DataFrame:
+    goles = eventos[eventos["tipo_evento"] == "Gol"].copy() if "tipo_evento" in eventos.columns else eventos.iloc[:0].copy()
+    if goles.empty:
+        return _empty(["label", "equipo", "Goles"])
+    goles["jugador"] = _clean_text(goles["jugador"], "Sin jugador")
+    goles["equipo"] = _clean_text(goles["equipo"], "Sin equipo")
+    goles["label"] = goles["jugador"] + " (" + goles["equipo"] + ")"
+    return (
+        goles.groupby(["label", "equipo"], as_index=False).size()
+        .rename(columns={"size": "Goles"})
+        .sort_values("Goles", ascending=False)
+        .head(top_n)
+        .reset_index(drop=True)
+    )
+
+
+def build_goals_by_period(eventos: pd.DataFrame) -> pd.DataFrame:
+    goles = eventos[eventos["tipo_evento"] == "Gol"].copy() if "tipo_evento" in eventos.columns else eventos.iloc[:0].copy()
+    if goles.empty:
+        return _empty(["Periodo", "Goles"])
+    goles["Periodo"] = goles["periodo"].apply(
+        lambda v: "Primer Tiempo" if _normalize_period(v) == "1T"
+        else "Segundo Tiempo" if _normalize_period(v) == "2T"
+        else "Otros"
+    )
+    return goles.groupby("Periodo", as_index=False).size().rename(columns={"size": "Goles"})
+
+
+def build_top_undisciplined(eventos: pd.DataFrame, top_n: int = 10) -> pd.DataFrame:
+    disc = discipline_events(eventos).copy()
+    if disc.empty:
+        return _empty(["label", "equipo", "Puntaje"])
+    pesos = {"Falta": 1, "Amarilla": 2, "Azul I": 2, "Azul D": 3, "Roja": 4}
+    disc["Peso"] = disc["tipo_evento"].map(pesos).fillna(1)
+    disc["jugador"] = _clean_text(disc["jugador"], "Sin jugador")
+    disc["equipo"] = _clean_text(disc["equipo"], "Sin equipo")
+    disc["label"] = disc["jugador"] + " (" + disc["equipo"] + ")"
+    return (
+        disc.groupby(["label", "equipo"], as_index=False)["Peso"].sum()
+        .rename(columns={"Peso": "Puntaje"})
+        .sort_values("Puntaje", ascending=False)
+        .head(top_n)
+        .reset_index(drop=True)
+    )
+
+
 def format_last_updated(ts: datetime | pd.Timestamp | None) -> str:
     if ts is None or pd.isna(ts):
         return "Sin datos"
