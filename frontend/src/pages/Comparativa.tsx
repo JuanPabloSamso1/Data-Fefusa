@@ -27,7 +27,7 @@ export default function Comparativa({ filters }: { filters: Filters }) {
   const jugadores = catalogData?.jugadores ?? [];
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4">
       <h2 className="text-xl font-bold">Comparativa de Jugadores</h2>
 
       <div className="grid grid-cols-2 gap-4">
@@ -48,7 +48,7 @@ export default function Comparativa({ filters }: { filters: Filters }) {
       {isLoading && <div className="flex gap-3 items-center text-gray-400"><Spinner />Calculando...</div>}
 
       {data && !isLoading && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <section className="card flex flex-col gap-3">
             <h3 className="font-semibold text-gray-200">Métricas comparadas</h3>
             <DataTable

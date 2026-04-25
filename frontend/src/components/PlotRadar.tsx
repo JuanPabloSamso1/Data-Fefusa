@@ -30,15 +30,15 @@ export default function PlotRadar({ categories, valueA, valueB, labelA, labelB }
         },
       ]}
       layout={{
-        paper_bgcolor: "#161b22",
-        plot_bgcolor: "#0d1117",
-        font: { color: "#c9d1d9", family: "Inter, sans-serif", size: 12 },
+        paper_bgcolor: "#111827",
+        plot_bgcolor: "#0b0e1a",
+        font: { color: "#8b9ab5", family: "Inter, sans-serif", size: 11 },
         polar: {
-          bgcolor: "#0d1117",
-          radialaxis: { visible: true, range: [0, 1], color: "#8b949e", gridcolor: "#21262d" },
-          angularaxis: { color: "#8b949e", gridcolor: "#21262d" },
+          bgcolor: "#0b0e1a",
+          radialaxis: { visible: true, range: [0, 1], color: "#8b9ab5", gridcolor: "#1e2d40" },
+          angularaxis: { color: "#8b9ab5", gridcolor: "#1e2d40" },
         },
-        legend: { bgcolor: "transparent" },
+        legend: { bgcolor: "transparent", font: { color: "#8b9ab5" } },
         margin: { t: 32, r: 32, b: 32, l: 32 },
       }}
       config={{ displayModeBar: false, responsive: true }}

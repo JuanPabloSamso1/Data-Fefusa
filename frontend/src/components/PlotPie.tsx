@@ -38,9 +38,9 @@ export default function PlotPie({ labels, values, colors }: Props) {
         textfont: { size: 11 },
       }]}
       layout={{
-        paper_bgcolor: "#161b22",
-        plot_bgcolor: "#0d1117",
-        font: { color: "#c9d1d9", family: "Inter, sans-serif", size: 12 },
+        paper_bgcolor: "#111827",
+        plot_bgcolor: "#0b0e1a",
+        font: { color: "#8b9ab5", family: "Inter, sans-serif", size: 11 },
         margin: { t: 16, r: 16, b: 16, l: 16 },
         showlegend: false,
       }}

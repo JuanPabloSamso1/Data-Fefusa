@@ -23,7 +23,7 @@ export default function Liga({ filters }: { filters: Filters }) {
   } = data;
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4">
       <h2 className="text-xl font-bold">Liga / Temporada</h2>
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
@@ -34,7 +34,7 @@ export default function Liga({ filters }: { filters: Filters }) {
         <KPICard icon="🔥" label="Mejor EGR" value={summary.mejor_eficiencia} />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <section className="card flex flex-col gap-3">
           <h3 className="font-semibold text-gray-200">Tabla de posiciones</h3>
           <DataTable
@@ -54,7 +54,7 @@ export default function Liga({ filters }: { filters: Filters }) {
         </section>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <section className="card flex flex-col gap-3">
           <h3 className="font-semibold text-gray-200">⚽ Goles por equipo</h3>
           <PlotHBar
@@ -74,7 +74,7 @@ export default function Liga({ filters }: { filters: Filters }) {
         </section>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <section className="card flex flex-col gap-3">
           <h3 className="font-semibold text-gray-200">📅 Goles por jornada</h3>
           <PlotBar
@@ -104,7 +104,7 @@ export default function Liga({ filters }: { filters: Filters }) {
         />
       </section>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <section className="card flex flex-col gap-3">
           <h3 className="font-semibold text-gray-200">Eficiencia Goleadora Relativa (EGR)</h3>
           <DataTable

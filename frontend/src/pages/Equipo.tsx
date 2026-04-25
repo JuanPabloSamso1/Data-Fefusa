@@ -24,7 +24,7 @@ export default function Equipo({ filters }: { filters: Filters }) {
   });
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4">
       <div className="flex items-center gap-4">
         <h2 className="text-xl font-bold">Perfil de Equipo</h2>
         <select
@@ -56,7 +56,7 @@ export default function Equipo({ filters }: { filters: Filters }) {
             <KPICard icon="❌" label="Derrotas" value={data.summary.pp} />
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <section className="card flex flex-col gap-3">
               <h3 className="font-semibold text-gray-200">Últimos 5 partidos</h3>
               <DataTable

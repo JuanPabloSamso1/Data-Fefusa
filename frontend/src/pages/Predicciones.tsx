@@ -28,7 +28,7 @@ export default function Predicciones({ filters }: { filters: Filters }) {
   const pred = data?.prediction;
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4">
       <h2 className="text-xl font-bold">Predicciones (Modelo Poisson)</h2>
 
       <div className="grid grid-cols-2 gap-4">

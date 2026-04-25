@@ -32,7 +32,7 @@ export default function Disciplina({ filters }: { filters: Filters }) {
   };
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4">
       <h2 className="text-xl font-bold">Disciplina</h2>
 
       <section className="card flex flex-col gap-3">

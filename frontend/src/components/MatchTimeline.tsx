@@ -66,11 +66,11 @@ export default function MatchTimeline({ events, teamLeft, teamRight }: Props) {
       insertedHalftime = true;
       rows.push(
         <div key="ht" className="flex items-center gap-2 py-3">
-          <div className="flex-1 border-t border-surface-600" />
-          <span className="text-xs text-gray-400 px-3 py-0.5 border border-surface-600 rounded-full font-semibold uppercase tracking-wider">
+          <div className="flex-1 border-t border-navy-600" />
+          <span className="text-xs text-[#8b9ab5] px-3 py-0.5 bg-navy-700 rounded-full font-semibold uppercase tracking-wider border border-[#00c2a8]">
             Entretiempo
           </span>
-          <div className="flex-1 border-t border-surface-600" />
+          <div className="flex-1 border-t border-navy-600" />
         </div>
       );
     }
@@ -94,12 +94,12 @@ export default function MatchTimeline({ events, teamLeft, teamRight }: Props) {
     rows.push(
       <div
         key={idx}
-        className="grid items-center gap-2 py-2 border-b border-surface-700 last:border-0"
+        className={`grid items-center gap-2 py-2 border-b border-navy-600 last:border-0 ${idx % 2 === 0 ? 'bg-navy-900' : 'bg-navy-800/50'}`}
         style={{ gridTemplateColumns: "1fr 64px 1fr" }}
       >
         <div className="flex justify-end">{isLeft ? cell : null}</div>
         <div className="flex justify-center">
-          <span className="text-xs font-bold text-gray-300 bg-surface-700 border border-surface-600 rounded-full px-2 py-0.5 min-w-[44px] text-center">
+          <span className="text-xs font-bold text-[#f0f4ff] bg-[#0b0e1a] border border-[#00c2a8] rounded-full px-2 py-0.5 min-w-[44px] text-center">
             {ev.minuto}'
           </span>
         </div>
@@ -109,13 +109,13 @@ export default function MatchTimeline({ events, teamLeft, teamRight }: Props) {
   });
 
   return (
-    <div className="rounded-xl border border-surface-600 overflow-hidden">
+    <div className="rounded-xl border border-navy-600 overflow-hidden">
       <div
-        className="grid bg-surface-700 px-4 py-2 text-xs font-semibold text-gray-300"
+        className="grid bg-navy-700 px-4 py-2 text-xs font-semibold text-[#f0f4ff]"
         style={{ gridTemplateColumns: "1fr 64px 1fr" }}
       >
         <div className="text-right">{teamLeft}</div>
-        <div className="text-center text-gray-500">Min</div>
+        <div className="text-center text-[#8b9ab5]">Min</div>
         <div className="text-left">{teamRight}</div>
       </div>
       <div className="px-4 py-1">{rows}</div>
