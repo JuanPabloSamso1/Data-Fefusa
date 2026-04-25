@@ -29,8 +29,6 @@ jobs:
 
       - name: Run ETL
         run: python main.py
-        env:
-          TORNEO_URL: ${{ secrets.TORNEO_URL }}
 
       - name: Commit updated CSVs
         run: |
