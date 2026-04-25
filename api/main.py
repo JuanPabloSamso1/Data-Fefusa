@@ -9,6 +9,8 @@ import numpy as np
 import pandas as pd
 from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 
 ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(ROOT))
@@ -44,10 +46,13 @@ app = FastAPI(title="FEFUSA API", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000"],
+    allow_origins=["*"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# ── Static React build (mounted after all API routes) ─────────────────────────
+DIST = ROOT / "frontend" / "dist"
 
 
 def _df_to_records(df: pd.DataFrame) -> list[dict]:
@@ -333,3 +338,13 @@ def get_predicciones(
         "prediction": result,
         "projection": _df_to_records(projection) if not projection.empty else [],
     }
+
+
+# ── Serve React SPA (must be LAST — catch-all after all API routes) ───────────
+if DIST.exists():
+    app.mount("/assets", StaticFiles(directory=DIST / "assets"), name="assets")
+
+    @app.get("/", include_in_schema=False)
+    @app.get("/{full_path:path}", include_in_schema=False)
+    async def spa_fallback(full_path: str = ""):
+        return FileResponse(DIST / "index.html")
