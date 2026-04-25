@@ -3,3 +3,5 @@ numpy
 fastapi>=0.111.0
 uvicorn[standard]>=0.29.0
 python-dotenv
+apscheduler>=3.10.0
+requests

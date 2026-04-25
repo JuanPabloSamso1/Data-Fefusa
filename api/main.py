@@ -7,6 +7,8 @@ from typing import Optional
 
 import numpy as np
 import pandas as pd
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -42,7 +44,15 @@ from dashboard.analytics import (
 from api.filters import apply_event_filters, apply_match_filters
 from dashboard.predictions import predict_match, project_table
 
-app = FastAPI(title="FEFUSA API", version="1.0.0")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    from api.scheduler import start, stop
+    start()
+    yield
+    stop()
+
+
+app = FastAPI(title="FEFUSA API", version="1.0.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -338,6 +348,17 @@ def get_predicciones(
         "prediction": result,
         "projection": _df_to_records(projection) if not projection.empty else [],
     }
+
+
+# ── Admin ─────────────────────────────────────────────────────────────────────
+
+@app.post("/api/admin/run-etl", include_in_schema=False)
+async def trigger_etl_now():
+    """Manual trigger — runs ETL immediately in background thread."""
+    import asyncio
+    from api.scheduler import run_etl
+    asyncio.get_event_loop().run_in_executor(None, run_etl)
+    return {"status": "ETL iniciado en background"}
 
 
 # ── Serve React SPA (must be LAST — catch-all after all API routes) ───────────
