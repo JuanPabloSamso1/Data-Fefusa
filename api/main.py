@@ -39,7 +39,7 @@ from dashboard.analytics import (
     build_top_undisciplined,
     format_last_updated,
 )
-from dashboard.filters import apply_event_filters, apply_match_filters
+from api.filters import apply_event_filters, apply_match_filters
 from dashboard.predictions import predict_match, project_table
 
 app = FastAPI(title="FEFUSA API", version="1.0.0")
